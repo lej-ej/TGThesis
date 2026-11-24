@@ -1,0 +1,424 @@
+---
+title: "Government Agencies × Private Data Providers: A Two-Mode Network"
+subtitle: "Federal contract awards from USAspending.gov"
+author: "Leja Ejury"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    df_print: paged
+  pdf_document:
+    toc: true
+    latex_engine: xelatex
+    df_print: kable
+    fig_caption: false
+geometry: margin=0.5in
+classoption: landscape
+params:
+  start_date: "2015-01-01"
+  end_date: "2024-12-31"
+  top_agencies: 25          # keep the N sub-agencies with the most spending
+  refresh: false            # TRUE = re-download from the API even if cached
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = !knitr::is_latex_output(),  # code hidden in PDF
+                      message = FALSE, warning = FALSE,
+                      dev = "ragg_png",  # PNG keeps en dashes in plot text (PDF device drops them)
+                      fig.width = 11, fig.height = 9, dpi = 150)
+library(httr2)
+library(jsonlite)
+library(dplyr)
+library(tidyr)
+library(igraph)
+library(tidygraph)
+library(ggraph)
+library(ggplot2)
+library(scales)
+
+# Paths are relative to this file (scripts/network/)
+cache_file <- "../../data/raw/usaspending_awards.csv"
+
+# Palette: two node modes get two categorical hues; edges use a single-hue
+# sequential ramp (light = few contracts, dark = many).
+col_agency <- "#2a78d6"   # blue   = government (mode 1)
+col_firm   <- "#eb6834"   # orange = company    (mode 2)
+edge_low   <- "#d9d7d0"
+edge_high  <- "#1f1f1d"
+```
+
+## 1. What this graph shows
+
+A **two-mode (bipartite) network** has two kinds of nodes, and edges only run
+*between* the kinds, never within them:
+
+* **Mode 1: government**: the federal *awarding sub-agency* (e.g., ICE, FBI, Army).
+* **Mode 2: companies**: private data, analytics, and information providers.
+* **Edge**: at least one contract from that agency to that company in the period.
+
+Each edge carries **two weights**, and the graph shows both:
+
+| Weight | Encoded as | Why |
+|---|---|---|
+| **Contract size** (total $ obligated) | **edge width** (log scale) | Dollar values span ~6 orders of magnitude; a linear width would make everything but the top edge invisible. |
+| **Number of contracts** | **edge color** (light → dark) | Separates *one big contract* (thick, pale) from *many small, recurring ones* (thin, dark), which is a different kind of dependence. |
+
+Node size = the node's total contract dollars (its weighted degree, or "strength").
+
+## 2. Pull the data
+
+The firms below are searched by **recipient name** in the USAspending Award
+Search API (contracts only: award types A–D). Edit `firm_queries` to add or
+remove companies. Results are cached to `data/raw/usaspending_awards.csv`
+so knitting is fast after the first run.
+
+```{r firms}
+# search text -> clean firm label (regex used to map messy recipient names)
+firm_queries <- tribble(
+  ~query,              ~firm,                         ~pattern,
+  "LexisNexis",        "RELX / LexisNexis",           "LEXISNEXIS|LEXIS-NEXIS|LEXIS NEXIS",
+  "RELX",              "RELX / LexisNexis",           "^RELX|REED ELSEVIER",
+  "Thomson Reuters",   "Thomson Reuters (West/CLEAR)","THOMSON REUTERS",
+  "West Publishing",   "Thomson Reuters (West/CLEAR)","WEST PUBLISHING",
+  "Palantir",          "Palantir",                    "PALANTIR",
+  "Babel Street",      "Babel Street",                "BABEL STREET",
+  "TransUnion",        "TransUnion",                  "TRANSUNION|TRANS UNION",
+  "Equifax",           "Equifax",                     "EQUIFAX",
+  "Experian",          "Experian",                    "EXPERIAN",
+  "Clearview AI",      "Clearview AI",                "CLEARVIEW AI",
+  "Venntel",           "Venntel",                     "VENNTEL",
+  "Acxiom",            "Acxiom",                      "ACXIOM",
+  "Penlink",           "Penlink",                     "PEN-LINK|PENLINK",
+  "ShadowDragon",      "ShadowDragon",                "SHADOWDRAGON|SHADOW DRAGON",
+  "Cobwebs",           "Cobwebs",                     "COBWEBS"
+)
+```
+
+```{r fetch}
+fetch_recipient <- function(query, start, end) {
+  out <- list(); page <- 1
+  repeat {
+    body <- list(
+      filters = list(
+        recipient_search_text = list(query),
+        award_type_codes = list("A", "B", "C", "D"),
+        time_period = list(list(start_date = start, end_date = end))
+      ),
+      fields = list("Award ID", "Recipient Name", "Awarding Agency",
+                    "Awarding Sub Agency", "Award Amount", "Start Date",
+                    "Description"),
+      limit = 100, page = page, sort = "Award Amount", order = "desc"
+    )
+    resp <- request("https://api.usaspending.gov/api/v2/search/spending_by_award/") |>
+      req_body_json(body, auto_unbox = TRUE) |>
+      req_retry(max_tries = 4) |>
+      req_perform() |>
+      resp_body_json(simplifyVector = TRUE)
+    if (length(resp$results) == 0) break
+    out[[page]] <- as_tibble(resp$results)
+    if (!isTRUE(resp$page_metadata$hasNext)) break
+    page <- page + 1
+    Sys.sleep(0.2)   # be polite to the API
+  }
+  bind_rows(out) |> mutate(query = query)
+}
+
+if (params$refresh || !file.exists(cache_file)) {
+  raw <- lapply(firm_queries$query, fetch_recipient,
+                start = params$start_date, end = params$end_date) |>
+    bind_rows()
+  write.csv(raw, cache_file, row.names = FALSE)
+} else {
+  raw <- read.csv(cache_file, check.names = FALSE) |> as_tibble()
+}
+nrow(raw)
+```
+
+## 3. Clean and build the edge list
+
+Different searches can return the same award, and a search can pick up
+unrelated companies (e.g., "Clearview" matches more than Clearview AI), so each
+recipient name is matched against the firm's regex, and awards are de-duplicated.
+
+```{r clean}
+awards <- raw |>
+  distinct(`Award ID`, `Recipient Name`, .keep_all = TRUE) |>
+  mutate(recipient = toupper(`Recipient Name`))
+
+# assign each award to the first firm whose pattern matches its recipient name
+awards$firm <- NA_character_
+for (i in seq_len(nrow(firm_queries))) {
+  hit <- is.na(awards$firm) & grepl(firm_queries$pattern[i], awards$recipient)
+  awards$firm[hit] <- firm_queries$firm[i]
+}
+
+awards <- awards |>
+  filter(!is.na(firm), `Award Amount` > 0) |>
+  mutate(agency     = `Awarding Agency`,
+         sub_agency = `Awarding Sub Agency`,
+         amount     = `Award Amount`,
+         start      = as.Date(`Start Date`))
+
+# Which raw recipient names were kept? (check for false matches here)
+awards |> count(firm, recipient, sort = TRUE)
+```
+
+```{r edges}
+# keep the top N sub-agencies by spending so the graph stays legible
+top_subs <- awards |>
+  group_by(sub_agency) |>
+  summarise(total = sum(amount)) |>
+  slice_max(total, n = params$top_agencies) |>
+  pull(sub_agency)
+
+edges <- awards |>
+  filter(sub_agency %in% top_subs) |>
+  group_by(from = sub_agency, to = firm) |>
+  summarise(n_contracts = n(),
+            total_amount = sum(amount),
+            parent_agency = first(agency),
+            .groups = "drop")
+
+nodes <- bind_rows(
+  edges |> group_by(name = from) |>
+    summarise(strength = sum(total_amount), parent = first(parent_agency)) |>
+    mutate(type = "Government agency"),
+  edges |> group_by(name = to) |>
+    summarise(strength = sum(total_amount)) |>
+    mutate(type = "Company", parent = name)
+)
+
+g <- tbl_graph(nodes = nodes, edges = edges, directed = FALSE)
+cat(sum(nodes$type == "Government agency"), "agencies,",
+    sum(nodes$type == "Company"), "companies,",
+    nrow(edges), "edges,",
+    dollar(sum(edges$total_amount), scale = 1e-6, suffix = "M"), "total\n")
+```
+
+```{r scales}
+# shared encodings so every plot reads the same way
+fmt_dollars <- label_dollar(scale_cut = cut_short_scale())
+
+edge_scales <- list(
+  scale_edge_width_continuous(
+    name = "Contract size\n(total $, log scale)",
+    range = c(0.15, 2.8), trans = "log10", labels = fmt_dollars),
+  scale_edge_colour_gradient(
+    name = "Number of\ncontracts",
+    low = edge_low, high = edge_high, trans = "log10",
+    breaks = c(1, 3, 10, 30, 100, 300))
+)
+node_scales <- list(
+  scale_fill_manual(name = NULL,
+                    values = c("Government agency" = col_agency, "Company" = col_firm)),
+  scale_shape_manual(name = NULL,
+                     values = c("Government agency" = 22, "Company" = 21)),
+  scale_size_area(name = "Node total $", max_size = 10, labels = fmt_dollars,
+                  breaks = c(1e8, 5e8, 2e9))
+)
+node_guides <- guides(
+  fill  = guide_legend(order = 1, override.aes = list(size = 5)),
+  shape = guide_legend(order = 1, override.aes = list(size = 5)),
+  size  = guide_legend(order = 2, override.aes = list(shape = 21, fill = "#8a8984", colour = "white")))
+net_theme <- theme_void(base_size = 11) +
+  theme(legend.position = "right",
+        plot.title = element_text(face = "bold", size = 14),
+        plot.subtitle = element_text(colour = "#52514e"),
+        plot.margin = margin(10, 10, 10, 10))
+```
+
+## 4. Bipartite layout: government on the left, companies on the right
+
+This is the most literal picture of a two-mode graph. Agencies are grouped by
+parent department; companies are placed at the average height of the agencies
+they contract with, which keeps crossings down.
+
+```{r bipartite, fig.height = 10}
+# y positions: agencies sorted by department then spending
+agency_order <- nodes |>
+  filter(type == "Government agency") |>
+  arrange(parent, desc(strength)) |>
+  mutate(y = rev(seq_len(n())))
+
+# companies: weighted barycenter of their agencies' heights
+firm_y <- edges |>
+  left_join(agency_order |> select(from = name, y), by = "from") |>
+  group_by(name = to) |>
+  summarise(bary = weighted.mean(y, total_amount)) |>
+  arrange(bary) |>
+  mutate(y = seq(min(agency_order$y), max(agency_order$y), length.out = n()))
+
+lay <- nodes |>
+  left_join(bind_rows(agency_order |> select(name, y),
+                      firm_y |> select(name, y)), by = "name") |>
+  mutate(x = ifelse(type == "Government agency", 0, 1))
+
+ggraph(g, layout = "manual", x = lay$x, y = lay$y) +
+  geom_edge_diagonal(aes(edge_width = total_amount, edge_colour = n_contracts),
+                     alpha = 0.55, lineend = "round") +
+  geom_node_point(aes(fill = type, shape = type, size = strength),
+                  colour = "white", stroke = 0.8) +
+  geom_node_text(aes(label = name,
+                     hjust = ifelse(type == "Company", 0, 1),
+                     x = x + ifelse(type == "Company", 0.03, -0.03)),
+                 size = 3, colour = "#0b0b0b") +
+  edge_scales + node_scales +
+  scale_x_continuous(expand = expansion(add = c(0.9, 0.6))) +
+  node_guides +
+  labs(title = "Who buys from whom: federal agencies × data providers",
+       subtitle = sprintf("Contract awards %s to %s. Width = total $; darkness = number of contracts.",
+                          params$start_date, params$end_date)) +
+  net_theme
+```
+
+## 5. Force-directed layout: clusters and brokers
+
+The same graph laid out by network structure. Companies that sit between many
+agencies (high-degree "hubs") pull to the center; agencies that rely on a single
+provider sit on the edge.
+
+```{r force, fig.height = 9}
+set.seed(431)
+ggraph(g, layout = "stress", weights = 1 / log10(total_amount)) +
+  geom_edge_link(aes(edge_width = total_amount, edge_colour = n_contracts),
+                 alpha = 0.6, lineend = "round") +
+  geom_node_point(aes(fill = type, shape = type, size = strength),
+                  colour = "white", stroke = 0.8) +
+  geom_node_text(aes(label = name,
+                     fontface = ifelse(type == "Company", "bold", "plain")),
+                 repel = TRUE, size = 2.9, colour = "#0b0b0b",
+                 max.overlaps = 30, bg.colour = "white", bg.r = 0.1) +
+  edge_scales + node_scales +
+  node_guides +
+  labs(title = "Network structure of agency–provider contracting",
+       subtitle = "Stress layout. Heavier (more $) ties pull nodes closer together.") +
+  net_theme
+```
+
+## 6. The same graph as a matrix (read exact values)
+
+A two-mode network *is* a matrix, agencies × companies. This view shows
+both weights precisely: **fill = contract dollars**, **number in cell = number of
+contracts**. Use it alongside the graph in the paper when readers need exact values.
+
+```{r matrix, fig.height = 9, fig.width = 10}
+mat <- edges |>
+  mutate(from = factor(from, levels = agency_order$name),
+         to   = factor(to, levels = nodes |> filter(type == "Company") |>
+                          arrange(desc(strength)) |> pull(name)))
+
+ggplot(mat, aes(x = to, y = from)) +
+  geom_tile(aes(fill = total_amount), colour = "white", linewidth = 1) +
+  geom_text(aes(label = n_contracts,
+                colour = total_amount > 10^mean(log10(range(total_amount)))),
+            size = 3, show.legend = FALSE) +
+  scale_fill_gradient(name = "Contract size\n(total $, log)",
+                      low = "#dbe8f8", high = "#0d3d78",
+                      trans = "log10", labels = fmt_dollars) +
+  scale_colour_manual(values = c(`TRUE` = "white", `FALSE` = "#0b0b0b")) +
+  labs(x = NULL, y = NULL,
+       title = "Agency × provider matrix",
+       subtitle = "Cell shade = total contract $; number = count of contracts. Blank = no tie.") +
+  theme_minimal(base_size = 10) +
+  theme(axis.text.x = element_text(angle = 40, hjust = 1, vjust = 1),
+        panel.grid = element_blank(),
+        plot.title = element_text(face = "bold", size = 14),
+        plot.subtitle = element_text(colour = "#52514e"))
+```
+
+## 7. Before, during, and after a crisis
+
+Your research question is about change across a crisis, so here is the network
+split into three windows around COVID-19. Edit `periods` to use other crises
+(e.g., FEMA declaration windows). Node positions are fixed across panels so you
+can compare which ties appear, thicken, or disappear.
+
+```{r periods, fig.height = 7, fig.width = 14}
+periods <- tribble(
+  ~period,                 ~from_date,   ~to_date,
+  "1. Pre-COVID 2017–19",  "2017-01-01", "2019-12-31",
+  "2. COVID 2020–21",      "2020-01-01", "2021-12-31",
+  "3. Post-COVID 2022–24", "2022-01-01", "2024-12-31"
+) |> mutate(across(c(from_date, to_date), as.Date))
+
+edges_p <- awards |>
+  filter(sub_agency %in% top_subs) |>
+  cross_join(periods) |>
+  filter(start >= from_date, start <= to_date) |>
+  group_by(period, from = sub_agency, to = firm) |>
+  summarise(n_contracts = n(), total_amount = sum(amount), .groups = "drop")
+
+# one graph holding every period's edges; facet_edges splits them
+g_p <- tbl_graph(nodes = nodes, edges = edges_p, directed = FALSE)
+
+ggraph(g_p, layout = "manual", x = lay$x, y = lay$y) +
+  geom_edge_diagonal(aes(edge_width = total_amount, edge_colour = n_contracts),
+                     alpha = 0.55) +
+  geom_node_point(aes(fill = type, shape = type), size = 2.5, colour = "white") +
+  geom_node_text(aes(label = ifelse(type == "Company", name, "")),
+                 hjust = 0, nudge_x = 0.04, size = 2.6) +
+  facet_edges(~period) +
+  edge_scales + node_scales[1:2] +
+  scale_x_continuous(expand = expansion(add = c(0.1, 0.9))) +
+  labs(title = "How the agency–provider network changes across a crisis",
+       subtitle = "Left column = agencies (same order as section 4); right = companies.") +
+  net_theme + theme(strip.text = element_text(face = "bold", size = 11))
+```
+
+```{r period-summary}
+edges_p |>
+  group_by(period) |>
+  summarise(ties = n(),
+            contracts = sum(n_contracts),
+            total = dollar(sum(total_amount), scale = 1e-6, suffix = "M"),
+            agencies = n_distinct(from),
+            firms = n_distinct(to))
+```
+
+## 8. Network statistics
+
+```{r stats}
+ig <- as.igraph(g)
+V(ig)$type <- V(ig)$type == "Company"   # igraph's bipartite flag
+
+node_stats <- tibble(
+  name = V(ig)$name,
+  mode = ifelse(V(ig)$type, "Company", "Agency"),
+  degree = degree(ig),
+  total_dollars = strength(ig, weights = E(ig)$total_amount),
+  total_contracts = strength(ig, weights = E(ig)$n_contracts)
+) |>
+  arrange(mode, desc(total_dollars)) |>
+  mutate(total_dollars = dollar(total_dollars, scale = 1e-6, suffix = "M", accuracy = 0.1))
+
+node_stats
+
+# one-mode projection: companies linked when they share an agency client
+proj <- bipartite_projection(ig, which = "true")
+cat("Company–company density (shared agency clients):",
+    round(edge_density(proj), 2), "\n")
+```
+
+```{r top-edges}
+edges |>
+  arrange(desc(total_amount)) |>
+  mutate(total_amount = dollar(total_amount)) |>
+  select(agency = from, company = to, n_contracts, total_amount) |>
+  head(20)
+```
+
+## 9. Caveats to note in the paper
+
+* **Data purchases vs. other services.** RELX (which also owns Elsevier) and
+  Thomson Reuters (Westlaw) contracts include legal research and journal
+  subscriptions as well as person-search products (Accurint, CLEAR). Use the
+  `Description` field, or product/service codes, to separate them, as your
+  proposal anticipates.
+* **Recipient search is name-based.** Check the recipient table in section 3
+  for false matches before interpreting a tie.
+* **Award Amount** is the total obligated over the award's life, dated by the
+  award's start date; multi-year contracts are assigned to the year they began.
+* **Sub-agency cut-off.** Only the top `r params$top_agencies` sub-agencies by
+  spending are drawn; change `top_agencies` in the YAML header.

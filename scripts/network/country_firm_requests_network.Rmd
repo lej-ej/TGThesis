@@ -1,0 +1,290 @@
+---
+title: "Governments and Tech Firms: Requests for User Data"
+subtitle: "Two-mode network (countries × firms) from Google, Apple and Microsoft transparency reports, log-weighted"
+author: "Leja Ejury"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    df_print: paged
+  pdf_document:
+    toc: true
+    latex_engine: xelatex
+    df_print: kable
+    fig_caption: false
+geometry: margin=0.5in
+classoption: landscape
+params:
+  start_year: 2013      # first year all three firms report
+  end_year: 2025
+  top_countries: 45     # countries drawn in the network
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = !knitr::is_latex_output(),  # code hidden in PDF
+                      message = FALSE, warning = FALSE,
+                      dev = "ragg_png",  # PNG keeps en dashes in plot text
+                      fig.width = 12, fig.height = 11, dpi = 150)
+library(data.table)
+library(dplyr)
+library(igraph)
+library(ggraph)
+library(ggplot2)
+library(scales)
+
+panel_file <- "../../data/processed/transparency_country_firm.csv"
+if (!file.exists(panel_file)) {
+  owd <- setwd("../scripts"); source("build_transparency_panel.R"); setwd(owd)
+}
+
+firm_cols <- c(Google = "#2a78d6", Apple = "#eb6834", Microsoft = "#1baf7a")
+ink <- "#0b0b0b"; ink2 <- "#52514e"; grid_col <- "#e4e3df"
+```
+
+## What this network is
+
+Each **edge** is a government asking a technology firm for data about its users. The data comes from each
+firm's own transparency report, which is the approach Haswell & Whitford (2025) use for the United States.
+This report extends it to every country the firms report on, as they suggest in their limitations section (p. 374).
+
+| | |
+|---|---|
+| **Mode 1 (countries)** | governments making requests: police, courts, prosecutors, emergency services |
+| **Mode 2 (firms)** | Google, Apple, Microsoft |
+| **Edge weight** | number of requests, `r params$start_year`–`r params$end_year`, drawn as **log10(requests)** |
+| **Edge darkness** | share of requests where the firm handed over some data (disclosure rate) |
+
+**What each firm counts:**
+
+- **Google:** every legal process except preservation requests.
+- **Apple:** account requests plus emergency requests. Device and financial-identifier requests are left out because they are mostly lookups for stolen phones and card fraud.
+- **Microsoft:** criminal law-enforcement requests plus emergency requests. Civil requests are left out.
+
+The three firms define a "request" differently, so **compare countries within a firm, not raw counts
+across firms**. That is why the layout below uses each firm's *share*, not its raw volume.
+
+```{r load}
+panel <- fread(panel_file)[year >= params$start_year & year <= params$end_year]
+
+edges_all <- panel[, .(requests = sum(requests), accounts = sum(accounts),
+                       disclosed = sum(disclosed)), by = .(country, iso2, firm)]
+edges_all[, rate := pmin(disclosed / requests, 1)]
+
+# Each firm's world total, used to put the firms on a common scale
+firm_tot <- edges_all[, .(R = sum(requests)), by = firm]
+edges_all <- merge(edges_all, firm_tot, by = "firm")
+edges_all[, share := requests / R]          # country's share of that firm's requests
+
+# Rank countries by their summed shares: every firm counts equally, not Google's volume
+rank <- edges_all[, .(importance = sum(share), total = sum(requests),
+                      n_firms = uniqueN(firm)), by = .(country, iso2)][order(-importance)]
+keep <- head(rank$iso2, params$top_countries)
+edges <- edges_all[iso2 %in% keep]
+```
+
+## Summary by firm
+
+```{r firm-table}
+edges_all[, .(Countries = uniqueN(iso2),
+              Requests = comma(sum(requests)),
+              `Accounts named` = comma(sum(accounts)),
+              `Some data disclosed` = percent(sum(disclosed) / sum(requests), 1)),
+          by = .(Firm = firm)][order(Firm)] |> knitr::kable(align = "lrrrr")
+```
+
+`r nrow(rank)` governments appear in at least one report. `r sum(rank$n_firms == 3)` of them made requests to all three firms.
+The network below shows the top `r params$top_countries`, ranked by their combined share of each firm's requests.
+
+## The network: where each government sends its requests
+
+The three firms sit at the corners of a triangle. Each country is placed by the **share of each firm's
+worldwide requests** it accounts for:
+
+- **Corners:** a country drawn toward a corner makes up an unusually large share of that firm's requests compared with the other two firms.
+- **Centre:** a country near the centre accounts for the same share of every firm's requests.
+- **Normalising first:** shares are taken within each firm, so Google's much larger volume does not pull everything toward Google.
+
+Edge width is log10(requests) and edge darkness is the disclosure rate.
+
+```{r layout}
+corner <- data.table(firm = names(firm_cols),
+                     cx = c(0, -1, 1), cy = c(1.05, -0.65, -0.65))
+pos <- merge(edges[, .(firm, iso2, country, share)], corner, by = "firm")
+pos <- pos[, .(w = share / sum(share), cx, cy), by = .(iso2, country)]
+pos <- pos[, .(x = sum(w * cx), y = sum(w * cy)), by = .(iso2, country)]
+# Most countries use all three firms, so raw positions bunch near the centre.
+# Stretch distances from the centre (same factor for every country, so the ordering
+# and direction of each lean are unchanged) until the furthest country is 80% of the
+# way to a corner.
+c0 <- corner[, .(x0 = mean(cx), y0 = mean(cy))]
+pos[, `:=`(dx = x - c0$x0, dy = y - c0$y0)]
+stretch <- 0.80 * 1.1 / max(sqrt(pos$dx^2 + pos$dy^2))
+pos[, `:=`(x = c0$x0 + dx * stretch, y = c0$y0 + dy * stretch)]
+# keep anything pushed past an edge inside the triangle's bounding box
+pos[, `:=`(x = pmax(pmin(x, 0.85), -0.85), y = pmax(pmin(y, 0.9), -0.55))]
+pos <- merge(pos, rank[, .(iso2, total, n_firms)], by = "iso2")
+
+nodes <- rbind(
+  data.table(name = pos$iso2, label = pos$country, type = "Country",
+             x = pos$x, y = pos$y, total = pos$total),
+  data.table(name = corner$firm, label = corner$firm, type = "Firm",
+             x = corner$cx, y = corner$cy, total = NA_real_))
+nodes[, size_val := ifelse(type == "Firm", NA, log10(total))]
+
+g <- graph_from_data_frame(edges[, .(from = iso2, to = firm, requests, rate, firm)],
+                           vertices = nodes, directed = FALSE)
+```
+
+```{r network, fig.height = 11.5}
+req_breaks <- c(10, 100, 1e3, 1e4, 1e5)
+
+draw_net <- function(g, title = NULL) {
+  ggraph(g, layout = "manual", x = V(g)$x, y = V(g)$y) +
+    geom_edge_link(aes(edge_width = log10(requests), edge_colour = rate), alpha = 0.55) +
+    geom_node_point(aes(filter = type == "Country", size = size_val),
+                    shape = 21, fill = "#f0efec", colour = ink2, stroke = 0.5) +
+    geom_node_point(aes(filter = type == "Firm", fill = name),
+                    shape = 21, size = 16, colour = "white", stroke = 1.2, show.legend = FALSE) +
+    geom_node_text(aes(filter = type == "Firm", label = label,
+                       y = y + ifelse(y > 0, 0.12, -0.12)),
+                   colour = ink, fontface = "bold", size = 4.6) +
+    geom_node_text(aes(filter = type == "Country", label = label),
+                   repel = TRUE, size = 3, colour = ink, max.overlaps = Inf, fontface = "bold",
+                   bg.colour = "#fcfcfb", bg.r = 0.15,
+                   segment.colour = "#b5b4ae", segment.size = 0.25, point.padding = 0.15) +
+    scale_fill_manual(values = firm_cols) +
+    scale_edge_width(name = "Requests (log scale)", range = c(0.1, 1.8),
+                     breaks = log10(req_breaks), labels = comma(req_breaks)) +
+    scale_edge_colour_gradient(name = "Share of requests\nwith data disclosed",
+                               low = "#d9d8d3", high = "#111111",
+                               limits = c(0, 1), labels = percent) +
+    scale_size_continuous(name = "Country's total requests\n(all three firms)",
+                          range = c(1.5, 7), breaks = log10(c(100, 1e3, 1e4, 1e5)),
+                          labels = comma(c(100, 1e3, 1e4, 1e5))) +
+    coord_equal(clip = "off") +
+    labs(title = title) +
+    theme_void(base_size = 11) +
+    theme(legend.position = "right",
+          plot.title = element_text(face = "bold", colour = ink),
+          plot.background = element_rect(fill = "#fcfcfb", colour = NA))
+}
+draw_net(g, sprintf("Government requests for user data, %d–%d (top %d countries)",
+                    params$start_year, params$end_year, params$top_countries))
+```
+
+## Matrix view: every country × firm
+
+The same edges as a grid. Fill shows log10(requests) and each cell is labelled with its disclosure rate.
+Countries run left to right in their order around the triangle, so neighbouring columns have similar leans.
+
+```{r matrix, fig.height = 5.2, fig.width = 15}
+ord <- pos[order(atan2(y - c0$y0, x - c0$x0))]$country
+m <- copy(edges)[, country := factor(country, levels = ord)]
+ggplot(m, aes(x = country, y = factor(firm, levels = rev(names(firm_cols))), fill = log10(requests))) +
+  geom_tile(colour = "#fcfcfb", linewidth = 0.8) +
+  geom_text(aes(label = percent(rate, 1),
+                colour = log10(requests) > 3.4), size = 2.2, angle = 90, show.legend = FALSE) +
+  scale_colour_manual(values = c(`TRUE` = "white", `FALSE` = ink)) +
+  scale_fill_gradient(name = "Requests\n(log scale)", low = "#cde2fb", high = "#104281",
+                      breaks = log10(req_breaks), labels = comma(req_breaks)) +
+  labs(x = NULL, y = NULL, caption = "Cell label = share of requests where some data was disclosed. Blank = no requests reported.") +
+  theme_minimal(base_size = 10) +
+  theme(panel.grid = element_blank(), axis.text.y = element_text(face = "bold", size = 11),
+        axis.text.x = element_text(angle = 60, hjust = 1),
+        plot.background = element_rect(fill = "#fcfcfb", colour = NA))
+```
+
+## Change over time: before, during and after COVID
+
+Node positions are fixed from the full period, so only the edges change between panels.
+The cut points match the contract network: before COVID (`r params$start_year`–2019), during COVID (2020–2021) and after COVID (2022–`r params$end_year`).
+
+```{r periods, fig.height = 7.5, fig.width = 18}
+cuts <- c(params$start_year, 2019, 2021, params$end_year)
+lab  <- c(sprintf("Before COVID (%d–2019)", params$start_year), "During COVID (2020–2021)",
+          sprintf("After COVID (2022–%d)", params$end_year))
+pe <- panel[iso2 %in% keep, .(requests = sum(requests), disclosed = sum(disclosed)),
+            by = .(iso2, firm, era = cut(year, cuts, labels = lab, include.lowest = TRUE))]
+pe[, rate := pmin(disclosed / requests, 1)]
+gp <- graph_from_data_frame(pe[, .(from = iso2, to = firm, requests, rate, era)],
+                            vertices = nodes, directed = FALSE)
+draw_net(gp) + facet_edges(~era) +
+  theme(strip.text = element_text(face = "bold", size = 12, colour = ink))
+```
+
+```{r era-table}
+dcast(panel[, .(n = sum(requests)), by = .(firm, era = cut(year, cuts, labels = lab, include.lowest = TRUE))],
+      firm ~ era, value.var = "n")[, lapply(.SD, function(v) if (is.numeric(v)) comma(v) else v)] |>
+  setnames("firm", "Firm") |> knitr::kable(caption = "All countries, requests per period (periods differ in length)")
+```
+
+## Network statistics
+
+```{r stats}
+deg <- rank[, .N, by = .(`Firms requested from` = n_firms)][order(`Firms requested from`)]
+setnames(deg, "N", "Countries")
+knitr::kable(deg)
+
+# Concentration: how much of each firm's requests come from its top 5 governments
+edges_all[order(-requests), .(`Top-5 countries` = paste(head(country, 5), collapse = ", "),
+                              `Top-5 share` = percent(sum(head(share, 5)), 1),
+                              `US share` = percent(sum(share[iso2 == "US"]), 1)), by = .(Firm = firm)] |>
+  knitr::kable()
+```
+
+### Countries leaning most toward each firm
+
+The lean is the country's share of that firm's requests divided by its average share across all three firms.
+1.0 means proportional, and 3.0 means three times its usual share. Only countries with at least 100 requests to each of the three firms are included, so tiny counts do not produce extreme leans.
+
+```{r leans}
+full <- edges_all[, if (.N == 3 && all(requests >= 100)) .SD, by = iso2]
+full[, lean := share / mean(share), by = iso2]
+full[order(-lean), head(.SD, 6), by = firm][
+  , .(Firm = firm, Country = country, Lean = sprintf("%.1f×", lean),
+      Requests = comma(requests), Disclosed = percent(rate, 1))] |> knitr::kable()
+```
+
+### Disclosure: who gets data, from whom
+
+These are the countries with the largest gap in disclosure rate between firms, among those with at least 500 requests to every firm.
+
+```{r disclosure}
+big <- edges_all[, if (.N == 3 && all(requests >= 500)) .SD, by = iso2]
+big[, gap := max(rate) - min(rate), by = iso2]
+dcast(big, country + gap ~ firm, value.var = "rate")[order(-gap)][
+  , lapply(.SD, function(v) if (is.numeric(v)) percent(v, 1) else v)] |>
+  setnames(c("country", "gap"), c("Country", "Gap (max−min)")) |> head(15) |> knitr::kable()
+```
+
+## Diplomatic channel: requests routed through the US
+
+Google separately reports requests it receives **through diplomatic procedures** such as Mutual Legal Assistance Treaties (MLATs).
+In these, a foreign government asks another government (usually the US, sometimes Ireland, where Google's EU entity sits), which then serves Google.
+That adds an indirect path to the network: **country → assisting government → Google**.
+
+```{r mlat}
+dlr <- fread("../../data/raw/google-global-user-data-dlr-requests.csv")
+setnames(dlr, c("period_end", "country", "iso2", "assisting", "requests"))
+dlr[, year := as.integer(substr(period_end, 1, 4))]
+dlr[year >= params$start_year & year <= params$end_year,
+    .(`Diplomatic requests` = sum(requests),
+      `Direct requests to Google` = comma(edges_all[firm == "Google" & iso2 == .BY$iso2, sum(requests)])),
+    by = .(Country = country, iso2, `Routed through` = assisting)][
+  order(-`Diplomatic requests`)][, iso2 := NULL] |> head(15) |> knitr::kable()
+```
+
+## Caveats
+
+- **Different definitions.** Each firm counts "requests" in its own way, so the layout and leans use shares within each firm. Raw counts should not be compared across firms.
+- **Self-reported data.** Firms choose what to publish. Countries are omitted when they made no requests, and small counts may be rounded or banded.
+- **US national-security requests are excluded.** FISA orders and National Security Letters are reported only in bands (for example 0–499) and are left out.
+- **Apple scope.** Device and financial-identifier requests are excluded (see the definitions at the top). Including them would greatly inflate Germany and other countries that use Apple's device lookups for stolen phones.
+- **Missing firms.** Meta publishes country-level data only through its interactive Transparency Center, not as a file. Verizon and AT&T report mainly US figures. Either could be added by hand to widen the firm side of the network.
+- **Data sources.**
+  - Google: [Transparency Report](https://transparencyreport.google.com/user-data/overview)
+  - Apple: [Transparency Report CSVs](https://www.apple.com/legal/transparency/)
+  - Microsoft: [Law Enforcement Requests Report](https://www.microsoft.com/en-us/corporate-responsibility/law-enforcement-requests-report), half-yearly Excel files for 2013–2025
+  - Processing: `scripts/transparency/03_build_transparency_panel.R`

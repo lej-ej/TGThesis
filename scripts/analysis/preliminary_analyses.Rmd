@@ -1,0 +1,448 @@
+---
+title: "Federal Purchases of Privately Held Personal Data, FY2008–FY2026"
+subtitle: "Preliminary analyses and suggested studies"
+author: "Leja Ejury"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    df_print: kable
+  pdf_document:
+    toc: true
+    latex_engine: xelatex
+    df_print: kable
+geometry: margin=0.8in
+params:
+  ambig_share: 0.25      # share of the "ambiguous" RELX/West/Experian bucket treated as personal data (holdout estimate)
+  base_year: 2024        # dollars are deflated to this year's prices
+  min_years_active: 3    # sub-agencies need purchases in at least this many FYs to enter the agency panel
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = !knitr::is_latex_output(), message = FALSE, warning = FALSE,
+                      dev = "ragg_png", fig.width = 9, fig.height = 5, dpi = 150)
+library(data.table)
+library(ggplot2)
+library(scales)
+library(igraph)
+library(sandwich)
+library(lmtest)
+
+ROOT <- normalizePath(file.path(dirname(knitr::current_input(dir = TRUE)), "..", ".."))
+P    <- file.path(ROOT, "data/processed/usaspending")
+
+theme_set(theme_minimal(base_size = 11) +
+          theme(panel.grid.minor = element_blank(), plot.title.position = "plot",
+                legend.position = "bottom"))
+CH_COL <- c(purchase = "#2b6cb0", locating = "#c05621", own = "#2f855a",
+            analysis = "#805ad5", ambiguous = "#a0aec0")
+musd <- label_dollar(scale = 1e-6, suffix = "M")
+tab  <- function(x, ...) {                      # thousands separators, but not on years
+  x <- as.data.table(x); yr <- intersect(names(x), c("fy", "cohort", "year"))
+  if (length(yr)) x[, (yr) := lapply(.SD, as.character), .SDcols = yr]
+  knitr::kable(x, format.args = list(big.mark = ","), ...)
+}
+CRISES <- data.table(fy = c(2017, 2020, 2025),
+                     label = c("Immigration EOs\n(Jan 2017)", "COVID-19,\nUI fraud",
+                               "2025 enforcement\nsurge"))
+```
+
+# 1. Data processing
+
+All inputs are produced by the Python pipeline in `scripts/usaspending/` (see `data/processed/usaspending/CODEBOOK.md`). This document starts from the **transaction file** and rebuilds every panel, so changes you make upstream flow through. It applies three adjustments:
+
+1. **Hand corrections.** Any `keep_share` you enter in `review_large_mod_matches.csv` scales that modification's relevant obligation. For example, entering 0.2 for the Maximus bundle keeps 20% of it.
+2. **Constant dollars.** Values are deflated with annual CPI-U to `r params$base_year` prices. FY is approximated by calendar year.
+3. **Ambiguous bucket.** Where noted, a sensitivity series adds `r percent(params$ambig_share)` of the ambiguous multi-line-vendor contracts. That share comes from the holdout hand codes.
+
+```{r load}
+tx <- fread(file.path(P, "transactions.csv"),
+            select = c("contract_transaction_unique_key", "contract_award_unique_key", "fy",
+                       "awarding_agency_name", "awarding_sub_agency_name", "recipient_name",
+                       "recipient_parent_name", "firm", "category", "channel", "personal_data",
+                       "federal_action_obligation", "relevant_obligation", "found_by_codes",
+                       "found_by_keywords", "found_by_vendors", "sole_source", "only_one_source",
+                       "s_location", "s_biometric", "s_financial", "s_social_media",
+                       "s_criminal_records", "s_immigration", "s_telecom"))
+
+# 1. hand corrections
+rv <- fread(file.path(P, "review_large_mod_matches.csv"),
+            select = c("contract_transaction_unique_key", "keep_share"))[!is.na(keep_share)]
+tx[rv, on = "contract_transaction_unique_key", relevant_obligation := relevant_obligation * i.keep_share]
+
+# 2. constant dollars (CPI-U annual averages, BLS series CUUR0000SA0)
+cpi <- data.table(fy = 2008:2024,
+                  cpi = c(215.303, 214.537, 218.056, 224.939, 229.594, 232.957, 236.736, 237.017,
+                          240.007, 245.120, 251.107, 255.657, 258.811, 270.970, 292.655, 304.702, 313.689))
+# FY2025-26 are held at 2024 prices until you add those years' CPI values above
+cpi <- rbind(cpi, data.table(fy = 2025:2026, cpi = cpi[fy == 2024, cpi]))
+cpi[, defl := cpi[fy == params$base_year] / cpi]
+tx[cpi, on = "fy", `:=`(real = relevant_obligation * i.defl, real_all = federal_action_obligation * i.defl)]
+
+# a single seller name for market-structure measures
+tx[, seller := fifelse(firm != "" & !is.na(firm), firm,
+                fifelse(recipient_parent_name != "" & !is.na(recipient_parent_name),
+                        recipient_parent_name, recipient_name))]
+tx[, sub := awarding_sub_agency_name]
+pd <- tx[channel %in% c("purchase", "locating")]          # personal-data transactions
+```
+
+```{r counts}
+tab(data.table(
+  Item = c("Contract transactions", "Awards", "Personal-data awards (purchase + locating)",
+           "Personal-data sellers", "Buying sub-agencies", "Fiscal years"),
+  N = c(nrow(tx), uniqueN(tx$contract_award_unique_key), uniqueN(pd$contract_award_unique_key),
+        uniqueN(pd$seller), uniqueN(pd$sub), uniqueN(tx$fy))),
+  caption = "Size of the processed universe")
+```
+
+# 2. Descriptive statistics
+
+## 2.1 What was bought
+
+```{r cat-table}
+cat_tab <- tx[, .(awards = uniqueN(contract_award_unique_key),
+                  sellers = uniqueN(seller[real != 0]),
+                  real_obl = sum(real, na.rm = TRUE)), by = .(channel, category)
+             ][order(factor(channel, c("purchase", "locating", "own", "analysis", "service",
+                                       "ambiguous", "none")), -real_obl)]
+top_seller <- tx[, .(v = sum(real, na.rm = TRUE)), by = .(category, seller)
+                ][order(-v), .SD[1], by = category][, .(category, top_seller = seller)]
+cat_tab <- top_seller[cat_tab, on = "category"]
+tab(cat_tab[category != "other_it_or_unrelated",
+            .(channel, category, awards, sellers,
+              `obligations ($M, real)` = round(real_obl / 1e6, 1), top_seller)],
+    caption = "Relevant obligations by category, FY2008-26 (other IT/unrelated omitted)")
+```
+
+**Reading it.** The *purchase* channel buys private data outright. *Locating* hires a firm to find people. *Own* is agency-owned collection hardware (plate readers). *Analysis* is contracted OSINT analysts. The thesis's main outcome is the purchase channel, and its main contrast is purchase against own.
+
+## 2.2 How the universe was found
+
+```{r found-by}
+aw_pd <- pd[, .(v = max(found_by_vendors), k = max(found_by_keywords), c = max(found_by_codes)),
+            by = contract_award_unique_key]
+fb <- aw_pd[, .N, by = .(vendors = v, keywords = k, codes = c)][order(-N)]
+tab(fb, caption = "Personal-data awards by which search found them (1 = found)")
+```
+
+Each search finds a large share of awards that the others miss. A keyword-only search, which is how most journalism on this topic proceeds, would have missed most of the universe.
+
+## 2.3 National trends
+
+```{r trends, fig.height = 5.5}
+nat <- tx[channel %in% c("purchase", "locating", "own", "analysis", "ambiguous"),
+          .(real = sum(real, na.rm = TRUE)), by = .(fy, channel)]
+ggplot(nat[channel != "ambiguous"], aes(fy, real, fill = channel)) +
+  geom_col(width = 0.8) +
+  geom_vline(data = CRISES, aes(xintercept = fy - 0.5), linetype = 3, colour = "grey40") +
+  geom_text(data = CRISES, aes(x = fy - 0.45, y = Inf, label = label), inherit.aes = FALSE,
+            hjust = 0, vjust = 1.1, size = 2.6, colour = "grey30") +
+  scale_y_continuous(labels = musd) + scale_fill_manual(values = CH_COL) +
+  labs(title = "Federal spending on personal data by channel",
+       subtitle = paste0("Relevant obligations, ", params$base_year, " dollars"),
+       x = "Fiscal year", y = NULL, fill = NULL)
+```
+
+```{r trend-table}
+wide <- dcast(nat, fy ~ channel, value.var = "real", fill = 0)
+wide[, purchase_plus_ambig := purchase + params$ambig_share * ambiguous]
+tab(wide[, lapply(.SD, function(x) round(x / 1e6, 1)), by = fy],
+    caption = "Real obligations by channel ($M). purchase_plus_ambig adds the ambiguous share.")
+```
+
+```{r denominator, fig.height = 4}
+den <- tx[found_by_codes == 1, .(info_services = sum(real_all, na.rm = TRUE)), by = fy]
+sh  <- merge(nat[channel == "purchase", .(fy, purchase = real)], den, by = "fy")
+ggplot(sh, aes(fy, purchase / info_services)) + geom_line(colour = CH_COL["purchase"]) + geom_point() +
+  scale_y_continuous(labels = percent) +
+  labs(title = "Personal-data purchases as a share of all information-services purchasing",
+       subtitle = "Denominator: NAICS 519190/519290/561450/561611 and PSC D317/R612 obligations",
+       x = "Fiscal year", y = NULL)
+```
+
+The share is a **data-intensity** measure. It asks whether personal data grows faster than the government's general information purchasing, which separates a broker-specific shift from general IT growth. That is the central measurement problem your proposal flags.
+
+## 2.4 What kinds of data: sensitivity
+
+```{r sensitivity, fig.height = 4.5}
+sens <- melt(pd, id.vars = c("fy", "real"), measure.vars = patterns("^s_"),
+             variable.name = "flag")[value == 1, .(real = sum(real, na.rm = TRUE)), by = .(fy, flag)]
+sens[, flag := sub("^s_", "", flag)]
+ggplot(sens, aes(fy, real)) + geom_col(fill = CH_COL["purchase"]) +
+  facet_wrap(~flag, scales = "free_y", ncol = 4) + scale_y_continuous(labels = musd) +
+  labs(title = "Personal-data spending by sensitivity flag", x = NULL, y = NULL,
+       caption = "Flags overlap; immigration = buyer is ICE/CBP/USCIS or text mentions immigration")
+```
+
+## 2.5 Who buys
+
+```{r buyers}
+buy <- pd[, .(real = sum(real, na.rm = TRUE), years = uniqueN(fy[real > 0]),
+              sellers = uniqueN(seller)), by = .(agency = awarding_agency_name, sub)][order(-real)]
+tab(head(buy[, .(agency, sub, `real $M` = round(real / 1e6, 1), years, sellers)], 20),
+    caption = "Top 20 buying sub-agencies (purchase + locating)")
+```
+
+```{r heatmap, fig.height = 6.5}
+top_sub <- head(buy$sub, 25)
+hm <- CJ(sub = top_sub, fy = 2008:2026)[pd[sub %in% top_sub, .(real = sum(real, na.rm = TRUE)), by = .(sub, fy)],
+                                         on = .(sub, fy), real := i.real]
+hm[is.na(real) | real < 0, real := 0]
+hm[, sub := factor(sub, rev(top_sub))]
+ggplot(hm, aes(fy, sub, fill = asinh(real / 1e4))) + geom_tile(colour = "white") +
+  scale_fill_viridis_c(option = "mako", direction = -1, labels = NULL) +
+  labs(title = "Purchase spending by sub-agency and year (darker = more)", x = NULL, y = NULL,
+       fill = "asinh(spending)") + theme(legend.position = "right")
+```
+
+```{r extensive, fig.height = 4}
+ext <- pd[real > 0, .(`buying sub-agencies` = uniqueN(sub), `selling firms` = uniqueN(seller),
+                      `new awards` = uniqueN(contract_award_unique_key)), by = fy]
+ggplot(melt(ext, id.vars = "fy"), aes(fy, value)) + geom_line() + geom_point(size = 1) +
+  facet_wrap(~variable, scales = "free_y") +
+  labs(title = "Extensive margin: how many buyers, sellers and awards each year", x = NULL, y = NULL)
+```
+
+## 2.6 Market structure and procurement mode
+
+```{r market, fig.height = 4}
+ms <- pd[real > 0, .(v = sum(real)), by = .(fy, seller)][, s := v / sum(v), by = fy]
+mkt <- ms[, .(HHI = sum((100 * s)^2), top4 = sum(sort(s, decreasing = TRUE)[1:min(4, .N)])), by = fy]
+ss  <- pd[, .(sole = sum(real[sole_source == 1], na.rm = TRUE) / sum(real, na.rm = TRUE)), by = fy]
+mkt <- merge(mkt, ss, by = "fy")
+ggplot(melt(mkt, id.vars = "fy"), aes(fy, value)) + geom_line() + geom_point(size = 1) +
+  facet_wrap(~variable, scales = "free_y",
+             labeller = as_labeller(c(HHI = "Seller HHI (0-10,000)", top4 = "Top-4 seller share",
+                                      sole = "Sole-source share of spending"))) +
+  labs(title = "Concentration and competition in personal-data purchasing", x = NULL, y = NULL)
+```
+
+High concentration combined with rising sole-source shares after a crisis would point to **dependence on particular firms**, which is one of your stated questions. Year-to-year swings in the HHI usually reflect single large awards (for example Dataminr), so read levels across several years, not single points.
+
+# 3. Preliminary analyses
+
+## 3.1 Persistence: do crisis-era spending increases revert?
+
+For each sub-agency with real purchases before 2020, compare average spending in three windows: pre (FY2017–19), crisis (FY2020–21) and post (FY2022–24). If increases were temporary, agencies that rose in the crisis would fall back afterwards, and the slope below would be well under 1.
+
+```{r persistence, fig.height = 5}
+win <- pd[fy %between% c(2017, 2024),
+          .(real = sum(real, na.rm = TRUE)), by = .(sub, fy)
+         ][, period := fcase(fy <= 2019, "pre", fy <= 2021, "crisis", default = "post")]
+win <- CJ(sub = unique(win$sub), fy = 2017:2024)[win, on = .(sub, fy), real := i.real][is.na(real), real := 0]
+win[, period := fcase(fy <= 2019, "pre", fy <= 2021, "crisis", default = "post")]
+wp <- dcast(win[, .(m = pmax(mean(real), 0)), by = .(sub, period)], sub ~ period, value.var = "m")
+wp <- wp[pre > 1e5]
+wp[, `:=`(d_crisis = log((crisis + 1e4) / (pre + 1e4)), d_post = log((post + 1e4) / (pre + 1e4)))]
+ggplot(wp, aes(d_crisis, d_post)) + geom_hline(yintercept = 0, colour = "grey70") +
+  geom_vline(xintercept = 0, colour = "grey70") + geom_abline(linetype = 2, colour = "grey50") +
+  geom_point(aes(size = pre), alpha = 0.6, colour = CH_COL["purchase"]) +
+  geom_smooth(method = "lm", se = TRUE, colour = "black", linewidth = 0.6) +
+  scale_size_area(labels = musd, max_size = 7) +
+  labs(title = paste0("Crisis change vs. later change, by sub-agency (n = ", nrow(wp), ")"),
+       subtitle = "Dashed line = full persistence; flat line = full reversion",
+       x = "log change, FY20-21 vs FY17-19", y = "log change, FY22-24 vs FY17-19", size = "Pre-period $/yr")
+```
+
+**Measuring persistence properly.** In the plot both axes divide by the same pre-period level, so noise in that level pushes the slope toward 1 mechanically. The table below therefore uses $\log(\text{post}) = a + b\,\log(\text{crisis}) + c\,\log(\text{pre})$. The coefficient $b$ asks: holding an agency's prior level fixed, how much of its crisis-window level carries into the later window? The same model is fit on non-crisis placebo windows. A crisis $b$ that differs from the placebo $b$ means crisis-era changes persist differently from ordinary year-to-year changes.
+
+```{r persistence-placebo}
+persist <- function(pre, cr, post) {
+  w <- pd[fy %between% c(min(pre), max(post)), .(real = sum(real, na.rm = TRUE)), by = .(sub, fy)]
+  w <- CJ(sub = unique(w$sub), fy = min(pre):max(post))[w, on = .(sub, fy), real := i.real][is.na(real), real := 0]
+  w[, period := fcase(fy %in% pre, "pre", fy %in% cr, "crisis", fy %in% post, "post")]
+  x <- dcast(w[, .(m = pmax(mean(real), 0)), by = .(sub, period)], sub ~ period, value.var = "m")[pre > 1e5]
+  f <- lm(log(post + 1e4) ~ log(crisis + 1e4) + log(pre + 1e4), data = x)
+  data.table(b_crisis = coef(f)[2], se = coef(summary(f))[2, 2], c_pre = coef(f)[3], n = nrow(x))
+}
+pers <- rbind(cbind(windows = "Placebo A: 2009-11 / 2012-13 / 2014-16", persist(2009:2011, 2012:2013, 2014:2016)),
+              cbind(windows = "Placebo B: 2012-14 / 2015-16 / 2017-19", persist(2012:2014, 2015:2016, 2017:2019)),
+              cbind(windows = "COVID:     2017-19 / 2020-21 / 2022-24", persist(2017:2019, 2020:2021, 2022:2024)))
+tab(pers, digits = 2, caption = "Persistence of the crisis-window level, conditional on the pre level")
+```
+
+So far, a COVID-window coefficient of `r round(pers$b_crisis[3], 2)` compares with `r round(pers$b_crisis[1], 2)` and `r round(pers$b_crisis[2], 2)` in the placebo windows. The two placebos already disagree with each other, so ordinary year-to-year persistence is unstable. With about `r pers$n[3]` sub-agencies, these data **cannot yet separate crisis persistence from noise**. The tests that would help are more placebo windows (with pre-2008 data), award-level smoothing (spreading multi-year obligations over their performance period), or the tie-level measure in §3.2.
+
+## 3.2 Persistence of relationships: survival of agency–firm ties
+
+A **tie** is a (firm, sub-agency) pair with personal-data spending in a year. Tie cohorts are grouped by the year a tie first appears. The question is whether ties formed during crises survive longer than ties formed in ordinary years. Longer survival would mean a crisis created a new baseline relationship.
+
+```{r ties, fig.height = 4.5}
+ed <- fread(file.path(P, "edges_firm_agency_fy.csv"))
+ed <- ed[obligations > 0]
+ed[, tie := paste(firm, awarding_sub_agency_name, sep = " || ")]
+ed[, cohort := min(fy), by = tie]
+surv <- ed[cohort >= 2010, .(tie, cohort, fy)][, k := fy - cohort][k %between% c(1, 4)]
+n_coh <- ed[cohort >= 2010, .(n = uniqueN(tie)), by = cohort]
+sv <- surv[, .(active = uniqueN(tie)), by = .(cohort, k)][n_coh, on = "cohort"]
+sv <- sv[cohort + k <= 2026][, share := active / n]
+sv[, group := fcase(cohort %in% 2020:2021, "COVID cohorts (2020-21)",
+                    cohort %in% 2025:2026, "2025-26 cohorts", default = "Other cohorts")]
+ggplot(sv, aes(k, share, group = cohort, colour = group)) + geom_line(alpha = 0.8) + geom_point(size = 1) +
+  scale_colour_manual(values = c("COVID cohorts (2020-21)" = "#c05621", "2025-26 cohorts" = "#805ad5",
+                                 "Other cohorts" = "grey70")) +
+  scale_y_continuous(labels = percent) +
+  labs(title = "Share of new agency-firm ties still active k years later",
+       x = "Years since tie formed", y = NULL, colour = NULL)
+```
+
+```{r ties-table}
+tab(dcast(sv, cohort + n ~ paste0("k", k), value.var = "share")[, lapply(.SD, function(x) if (is.double(x)) round(x, 2) else x)],
+    caption = "Tie survival by cohort (share of the cohort's ties active k years later)")
+```
+
+## 3.3 Network structure before, during and after COVID
+
+```{r network}
+period_of <- function(y) fcase(y %between% c(2015, 2019), "2015-19", y %between% c(2020, 2021), "2020-21",
+                               y %between% c(2022, 2026), "2022-26")
+ed[, period := period_of(fy)]
+net_stats <- ed[!is.na(period), {
+  e <- unique(.SD[, .(firm, awarding_sub_agency_name)])
+  g <- graph_from_data_frame(e, directed = FALSE)
+  V(g)$type <- V(g)$name %in% e$firm
+  ag_deg <- degree(g)[!V(g)$type]; fm_deg <- degree(g)[V(g)$type]
+  .(firms = sum(V(g)$type), agencies = sum(!V(g)$type), ties = ecount(g),
+    density = ecount(g) / (sum(V(g)$type) * sum(!V(g)$type)),
+    `mean firms per agency` = mean(ag_deg), `max agencies per firm` = max(fm_deg),
+    `top firm` = names(fm_deg)[which.max(fm_deg)],
+    `firm-degree centralization` = centr_degree(g, normalized = TRUE)$centralization)
+}, by = period][order(period)]
+tab(net_stats, digits = 3, caption = "Bipartite firm × sub-agency network by period (personal-data ties)")
+```
+
+```{r network-top, fig.height = 5}
+deg <- unique(ed[!is.na(period), .(period, firm, awarding_sub_agency_name)])[, .(agencies = .N), by = .(period, firm)]
+top_f <- deg[, .SD[order(-agencies)][1:10], by = period]
+ggplot(top_f, aes(agencies, reorder(firm, agencies))) + geom_col(fill = CH_COL["purchase"]) +
+  facet_wrap(~period, scales = "free_y") +
+  labs(title = "Firms tied to the most sub-agencies", x = "Sub-agencies served", y = NULL) +
+  theme(axis.text.y = element_text(size = 7))
+```
+
+## 3.4 Illustrative event studies (agency-level difference-in-differences)
+
+These are **specification sketches**, not results. Treatment groups are defined by hand, there are few treated units, and standard errors are clustered on few clusters. Their purpose is to show whether the panel can support the design.
+
+The panel covers sub-agencies with purchase-channel spending in at least `r params$min_years_active` fiscal years, observed FY2008–26 with zeros filled in. The outcome is asinh(real purchase spending / $1,000).
+
+```{r panel}
+pan <- pd[, .(real = sum(real, na.rm = TRUE)), by = .(sub, fy)]
+keep_sub <- pan[real > 0, .N, by = sub][N >= params$min_years_active, sub]
+pan <- CJ(sub = keep_sub, fy = 2008:2026)[pan, on = .(sub, fy), real := i.real]
+pan[is.na(real) | real < 0, real := 0][, y := asinh(real / 1e3)]
+
+event_study <- function(treated, controls, event, window = c(-5, 4), title = "") {
+  d <- pan[sub %in% c(treated, controls)][, treat := as.integer(sub %in% treated)]
+  d[, rel := pmin(pmax(fy - event, window[1]), window[2])]
+  ks <- setdiff(window[1]:window[2], -1)                      # year -1 is the reference
+  dn <- paste0("D", sub("-", "m", ks))
+  for (j in seq_along(ks)) set(d, j = dn[j], value = d$treat * (d$rel == ks[j]))
+  m  <- lm(reformulate(c(dn, "factor(sub)", "factor(fy)"), "y"), data = d)
+  ct <- coeftest(m, vcov = vcovCL(m, cluster = ~sub))
+  r  <- data.table(rel = ks, est = ct[dn, 1], se = ct[dn, 2])
+  r <- rbind(r, data.table(rel = -1L, est = 0, se = 0))
+  d[, post := treat * (fy >= event)]
+  did <- lm(y ~ post + factor(sub) + factor(fy), data = d)
+  dct <- coeftest(did, vcov = vcovCL(did, cluster = ~sub))["post", ]
+  list(plot = ggplot(r, aes(rel, est)) + geom_hline(yintercept = 0, colour = "grey60") +
+         geom_vline(xintercept = -0.5, linetype = 3) +
+         geom_pointrange(aes(ymin = est - 1.96 * se, ymax = est + 1.96 * se), colour = CH_COL["purchase"]) +
+         scale_x_continuous(breaks = window[1]:window[2]) +
+         labs(title = title, subtitle = sprintf("Pooled DiD = %.2f (cluster SE %.2f); %d treated, %d control sub-agencies. End points binned.",
+                                                dct[1], dct[2], length(intersect(treated, keep_sub)),
+                                                length(intersect(controls, keep_sub))),
+              x = paste("Years relative to FY", event), y = "Effect on asinh(spending)"),
+       n = nrow(d))
+}
+```
+
+**(a) Immigration enforcement shock, FY2017.** Treated: ICE, CBP, USCIS. Controls: the other federal law-enforcement buyers. Both groups use the same broker products (Accurint, CLEAR), so the control group shows what demand for people-search would have been anyway.
+
+```{r es-immig, fig.height = 4}
+IMM  <- c("U.S. Immigration and Customs Enforcement", "U.S. Customs and Border Protection",
+          "U.S. Citizenship and Immigration Services")
+LAWE <- c("Federal Bureau of Investigation", "Drug Enforcement Administration", "U.S. Marshals Service",
+          "U.S. Secret Service", "Bureau of Alcohol, Tobacco, Firearms and Explosives Acquisition and Property Management Division",
+          "Internal Revenue Service", "Transportation Security Administration", "U.S. Coast Guard",
+          "Offices, Boards and Divisions", "Office of the Inspector General")
+event_study(IMM, LAWE, 2017, title = "Immigration agencies vs. other law enforcement, around FY2017")$plot
+```
+
+**(b) COVID program-integrity shock, FY2020.** Treated: agencies that paid out emergency money and then bought identity-verification and fraud data (SBA, CMS, IRS, Fiscal Service, FEMA, SSA, Treasury Departmental Offices, Labor). Controls: all other sub-agencies in the panel.
+
+```{r es-covid, fig.height = 4}
+COVID <- c("Small Business Administration", "Centers for Medicare and Medicaid Services", "Internal Revenue Service",
+           "Bureau of the Fiscal Service", "Federal Emergency Management Agency", "Social Security Administration",
+           "Departmental Offices", "Office of the Assistant Secretary for Administration and Management")
+event_study(COVID, setdiff(keep_sub, c(COVID, IMM)), 2020,
+            title = "Emergency-payment agencies vs. all other buyers, around FY2020")$plot
+```
+
+**How to read these.** The points left of the dotted line test **parallel pre-trends**. Points right of it show the effect, and points at +3 or +4 show **persistence**. In the COVID plot, every coefficient sits above zero, including the pre-period. That means the reference year (FY2019) was unusually low for the treated agencies, not that COVID had an effect. Re-estimate with a pooled pre-period reference (−5 to −2) before reading anything into it. In the immigration plot, the pre-period is noisy and the effect builds by +4 (FY2021). That is suggestive, but it overlaps COVID. With so few treated units, the next step for inference is a wild cluster bootstrap (`fwildclusterboot`) or randomization inference that reassigns treatment across sub-agencies.
+
+## 3.5 State-level variation: federally funded local surveillance purchases
+
+```{r grants, fig.height = 4.5}
+gr <- fread(file.path(P, "grants_surveillance.csv"))
+gr[cpi, on = "fy", real := federal_action_obligation * i.defl]
+g_state <- gr[real > 0, .(grants = uniqueN(assistance_award_unique_key), real = sum(real)), by = recipient_state_code][order(-grants)]
+g_fy <- gr[real > 0, .(grants = uniqueN(assistance_award_unique_key), real = sum(real)), by = .(fy, channel)]
+ggplot(g_fy, aes(fy, grants, fill = channel)) + geom_col() + scale_fill_manual(values = CH_COL) +
+  labs(title = "Federal justice/homeland grants funding LPR and data tools for local agencies",
+       x = NULL, y = "Grant awards", fill = NULL)
+tab(head(g_state, 15)[, .(state = recipient_state_code, grants, `real $K` = round(real / 1e3))],
+    caption = "States with the most grant-funded LPR/data purchases")
+```
+
+This is the only state-varying outcome available so far, and it is small (`r nrow(gr)` transactions). It is enough to test a pipeline, but too thin for a state DiD unless it is combined with state procurement data or FEMA disaster declarations (see Study 4).
+
+## 3.6 A complementary channel: compelled requests to Google
+
+```{r google, fig.height = 4}
+gp <- fread(file.path(ROOT, "data/processed/panel.csv"))[country == "United States"]
+gp[, year := as.integer(substr(period, 1, 4))]
+g_us <- gp[, .(requests = sum(requests, na.rm = TRUE)), by = year]
+cmp <- merge(g_us, nat[channel == "purchase", .(year = fy, purchase = real)], by = "year")
+cmp <- melt(cmp, id.vars = "year")[, idx := 100 * value / value[year == 2015], by = variable]
+ggplot(cmp, aes(year, idx, colour = variable)) + geom_line() + geom_point(size = 1) +
+  scale_colour_manual(values = c(requests = "grey40", purchase = CH_COL[["purchase"]]),
+                      labels = c("US legal requests to Google", "Federal personal-data purchases")) +
+  labs(title = "Buying data vs. compelling it (index, 2015 = 100)", x = NULL, y = NULL, colour = NULL)
+```
+
+Legal requests require legal process; purchases do not. If purchases rise while requests stay flat, that suggests substitution toward buying, especially after *Carpenter v. United States* (June 2018) required warrants for historical cell-site location data. Study 6 builds on this.
+
+# 4. Validation of the classifier
+
+```{r validation, comment = ""}
+rep <- readLines(file.path(P, "validation/validation_report.txt"))
+i <- grep("=== holdout", rep)
+cat(rep[i:(i + 8)], sep = "\n")
+```
+
+These figures come from the holdout: 184 awards drawn after the rules were frozen and hand-coded blind. They are the honest error rates. Weak spots are `osint_analysis_service` and the ambiguous RELX/West/Experian bucket. For the thesis, report main results with and without the ambiguous share, and hand-code a fresh sample yourself to get a human-coded reliability figure.
+
+# 5. Suggested studies
+
+| # | Study | Design | Treatment / variation | Outcome | Main threat |
+|---|---|---|---|---|---|
+| 1 | **National persistence** | Interrupted time series with breaks at FY2017, 2020, 2025; test whether the post-crisis level returns to trend | Crisis timing | Real purchase spending; data-intensity share (§2.3) | Only one series; secular growth in data markets |
+| 2 | **Immigration enforcement DiD** | Event study, ICE/CBP/USCIS vs. other law enforcement (§3.4a); repeat for FY2025 | 2017 and 2025 enforcement surges | Purchase spending, new awards, sensitivity mix (location, criminal records) | Few treated units; budget changes coincide with the policy |
+| 3 | **COVID program-integrity DiD** | Event study, emergency-payment agencies vs. others (§3.4b), focused on identity-verification and credit/employment reports | Exposure = share of agency budget from CARES/ARPA (data: USAspending DEFC codes L–U) | Identity and fraud-data purchases | Exposure is endogenous to agency mission; consider a continuous dose |
+| 4 | **State disasters → local surveillance tools** | Staggered DiD on state × year | FEMA major disaster declarations (OpenFEMA API) | Byrne JAG LPR/data grants per capita (§3.5) | Thin outcome; grants follow application cycles |
+| 5 | **Relationship persistence (SNA)** | Discrete-time hazard of tie dissolution; cohort comparison (§3.2); network concentration over time (§3.3) | Tie formed in a crisis year | Tie survival; firm centrality; HHI | Multi-year awards mechanically extend ties; control for award length |
+| 6 | **Substitution after a legal shock (RD in time)** | Regression discontinuity / ITS around *Carpenter* (June 2018), comparing location-data purchases to other categories | Warrant requirement for cell-site data | Location-data purchases vs. Google/wiretap legal-process counts | Location buys are rare (small N); announcement effects |
+| 7 | **Buy vs. build** | Ratio of purchase to own channels by agency over time | Crisis exposure | purchase / (purchase + own); hardware grants vs. data subscriptions | The "own" channel is mostly LPR, a narrow proxy for in-house capacity |
+| 8 | **Procurement under urgency** | Compare sole-source and only-one-offer shares, crisis vs. non-crisis years, within agency | Crisis timing | Sole-source share (§2.6); SAM.gov J&A texts citing "unusual and compelling urgency" once the API key is added | J&A coverage is incomplete before ~2015 |
+
+**Suggested order.** Studies 1, 2 and 5 can be run now with this data. Study 3 needs the disaster/emergency-fund codes (DEFC), which are one more USAspending pull. Study 4 needs OpenFEMA. Study 8 needs the SAM.gov key. Before anything goes in the thesis, fill in `keep_share` in the review file and hand-validate your own sample.
+
+**Additions that would strengthen the work:**
+
+- **More years.** Pre-2008 data exists in FPDS. It would add the 9/11 aftermath (FY2002–05), the cleanest crisis-and-persistence test, because ChoicePoint and LexisNexis sales to DHS and FBI expanded then.
+- **Award-level duration controls.** `first_action`/`last_action` in `awards.csv` let you separate new purchasing from options exercised on old contracts. Using `n_new_awards` in `agency_fy.csv` as an alternative outcome is a quick check.
+- **Placebo categories.** `legal_news_research` and `corporate_trade_data` are bought by the same agencies from the same vendors. If they also jump after crises, the effect is general information purchasing rather than personal data.
