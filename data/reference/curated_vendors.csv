@@ -1,0 +1,55 @@
+firm,dba,vendor_type,note,fallback_ok
+LexisNexis Risk Solutions,Accurint,people_search_records,"RELX unit; Accurint, LEIDS; ICE/CBP/SSA",1
+LexisNexis Special Services,,people_search_records,RELX federal unit,1
+LexisNexis Risk Data Management,,people_search_records,RELX,1
+RELX,,people_search_records,parent of LexisNexis (also legal research - classify),0
+Reed Elsevier,,people_search_records,former RELX name,0
+Thomson Reuters Special Services,,people_search_records,CLEAR for federal clients,1
+West Publishing,,people_search_records,Thomson Reuters contracting entity (CLEAR and Westlaw - classify),0
+Thomson Reuters,,people_search_records,parent (CLEAR and Westlaw - classify),0
+TransUnion,Trans Union,credit_identity,TLOxp; credit header; identity,0
+TransUnion Risk and Alternative Data Solutions,TLO,people_search_records,TLOxp,1
+Neustar,,telecom_identity,TransUnion since 2021,0
+Equifax,,credit_identity,credit header; The Work Number,0
+TALX,The Work Number,employment_income,Equifax Workforce Solutions,1
+Equifax Workforce Solutions,,employment_income,The Work Number,1
+Appriss,,records_booking,jail booking/insights (Equifax since 2022),1
+Experian,,credit_identity,,0
+Red Violet,idiCORE,people_search_records,,1
+Interactive Data,IDI,people_search_records,idiCORE predecessor,1
+Tracers Information Specialists,Tracers,people_search_records,,1
+Babel Street,,social_media_location,Locate X,1
+Venntel,,location,adtech location data (Gravy Analytics),1
+Gravy Analytics,,location,,1
+Fog Data Science,,location,,1
+Anomaly Six,,location,,1
+Near Intelligence,,location,,1
+X-Mode Social,Outlogic,location,,1
+Clearview AI,,biometric,face search,1
+ShadowDragon,,social_media_location,,1
+Penlink,,social_media_location,Tangles (Cobwebs),1
+Cobwebs Technologies,,social_media_location,,1
+Dataminr,,social_media_location,,1
+Skopenow,,social_media_location,,1
+Voyager Labs,,social_media_location,,1
+Fivecast,,social_media_location,,1
+Media Sonar,,social_media_location,,1
+Geofeedia,,social_media_location,,1
+Vigilant Solutions,,license_plate,LPR data (Motorola since 2019),1
+Flock Group,Flock Safety,license_plate,,1
+Rekor Systems,,license_plate,,1
+Digital Recognition Network,DRN,license_plate,,1
+Acxiom,,marketing,,0
+Epsilon Data Management,,marketing,,0
+Pipl,,people_search_records,,1
+Spokeo,,people_search_records,,1
+Intelius,,people_search_records,,1
+Whitepages,,people_search_records,,1
+Socure,,credit_identity,identity verification,1
+ID Analytics,,credit_identity,,1
+Sayari Analytics,,corporate_trade,entity/ownership data,1
+Kharon,,corporate_trade,,1
+Panjiva,,corporate_trade,trade data (S&P),1
+ImportGenius,,corporate_trade,,1
+Insight Global Data,,other,,1
+Thinkdata,,other,,1

@@ -1,0 +1,91 @@
+Validation of the rule classifier against blind hand codes
+
+=== tuning_in_sample  (n = 487) ===
+category agreement, raw:                 88.7%
+personal-data flag agreement, raw:       93.6%
+personal-data precision: 89.5%
+personal-data recall:    97.3%
+  (recall is within the pulled universe only; misses in 'other' carry large weights, so treat as rough)
+
+per rule category:
+                            n  agreement  hand_personal  population_awards
+rule_category                                                             
+other_it_or_unrelated      70       0.90           0.03             228597
+legal_news_research        41       0.93           0.02               8822
+ambiguous_vendor_contract  19       0.37           0.11               5193
+credit_employment_reports  33       0.88           0.88               2990
+people_search_records      29       0.83           0.90               1548
+corporate_trade_data       33       1.00           0.00                514
+social_media_data          46       0.89           0.89                341
+credit_monitoring_service  30       1.00           0.00                290
+lpr_equipment              48       0.96           0.00                196
+identity_verification      33       0.94           0.94                191
+license_plate_data         13       0.92           0.92                 56
+skip_tracing_service       22       0.86           0.86                 48
+osint_analysis_service      8       0.62           0.12                 45
+biometric_face             28       0.93           0.93                 28
+location_data              25       0.92           0.92                 25
+commercial_data_generic     9       0.56           0.67                  9
+
+confusion (rows = rule, cols = hand):
+hand_category              ambiguous_vendor_contract  biometric_face  commercial_data_generic  corporate_trade_data  credit_employment_reports  credit_monitoring_service  identity_verification  legal_news_research  license_plate_data  location_data  lpr_equipment  osint_analysis_service  other_it_or_unrelated  people_search_records  skip_tracing_service  social_media_data
+rule_category                                                                                                                                                                                                                                                                                                                                                                         
+ambiguous_vendor_contract                          7               0                        0                     1                          1                          0                      0                    5                   0              0              0                       0                      4                      1                     0                  0
+biometric_face                                     0              26                        0                     0                          0                          0                      0                    0                   0              0              0                       0                      2                      0                     0                  0
+commercial_data_generic                            1               0                        5                     2                          1                          0                      0                    0                   0              0              0                       0                      0                      0                     0                  0
+corporate_trade_data                               0               0                        0                    33                          0                          0                      0                    0                   0              0              0                       0                      0                      0                     0                  0
+credit_employment_reports                          0               0                        0                     1                         29                          1                      0                    0                   0              0              0                       0                      2                      0                     0                  0
+credit_monitoring_service                          0               0                        0                     0                          0                         30                      0                    0                   0              0              0                       0                      0                      0                     0                  0
+identity_verification                              0               0                        0                     0                          0                          0                     31                    0                   0              0              0                       0                      2                      0                     0                  0
+legal_news_research                                0               0                        0                     0                          0                          0                      0                   38                   0              0              0                       0                      2                      1                     0                  0
+license_plate_data                                 1               0                        0                     0                          0                          0                      0                    0                  12              0              0                       0                      0                      0                     0                  0
+location_data                                      0               0                        0                     0                          0                          0                      0                    0                   0             23              0                       0                      2                      0                     0                  0
+lpr_equipment                                      0               0                        0                     0                          0                          0                      0                    0                   0              0             46                       0                      2                      0                     0                  0
+osint_analysis_service                             0               0                        0                     0                          0                          0                      0                    0                   0              0              0                       5                      2                      0                     0                  1
+other_it_or_unrelated                              0               0                        1                     0                          1                          0                      0                    4                   0              0              0                       1                     63                      0                     0                  0
+people_search_records                              2               0                        0                     0                          0                          0                      0                    0                   0              0              0                       0                      1                     24                     2                  0
+skip_tracing_service                               0               0                        0                     0                          0                          0                      0                    0                   0              0              0                       0                      3                      0                    19                  0
+social_media_data                                  0               0                        0                     0                          0                          0                      0                    0                   0              0              0                       3                      2                      0                     0                 41
+
+=== holdout  (n = 184) ===
+category agreement, raw:                 83.7%
+personal-data flag agreement, raw:       94.0%
+category agreement, population-weighted:  88.0%
+personal-data flag agreement, weighted:   99.2%
+personal-data precision (weighted): 87.7%
+personal-data recall (weighted):    77.6%
+  (recall is within the pulled universe only; misses in 'other' carry large weights, so treat as rough)
+
+per rule category:
+                            n  agreement  hand_personal  population_awards
+rule_category                                                             
+other_it_or_unrelated      40       0.90           0.00             228597
+legal_news_research        12       0.83           0.00               8822
+ambiguous_vendor_contract  12       0.08           0.25               5193
+credit_employment_reports  12       0.83           0.83               2990
+people_search_records      12       0.92           0.92               1548
+corporate_trade_data       12       1.00           0.00                514
+social_media_data          12       1.00           1.00                341
+credit_monitoring_service  12       1.00           0.00                290
+lpr_equipment              12       0.92           0.00                196
+identity_verification      12       1.00           1.00                191
+license_plate_data         12       0.83           0.83                 56
+skip_tracing_service       12       0.92           1.00                 48
+osint_analysis_service     12       0.50           0.25                 45
+
+confusion (rows = rule, cols = hand):
+hand_category              ambiguous_vendor_contract  corporate_trade_data  credit_employment_reports  credit_monitoring_service  identity_verification  legal_news_research  license_plate_data  lpr_equipment  osint_analysis_service  other_it_or_unrelated  people_search_records  skip_tracing_service  social_media_data
+rule_category                                                                                                                                                                                                                                                                                                                 
+ambiguous_vendor_contract                          1                     0                          2                          0                      0                    6                   0              0                       0                      2                      1                     0                  0
+corporate_trade_data                               0                    12                          0                          0                      0                    0                   0              0                       0                      0                      0                     0                  0
+credit_employment_reports                          0                     0                         10                          0                      0                    0                   0              0                       0                      2                      0                     0                  0
+credit_monitoring_service                          0                     0                          0                         12                      0                    0                   0              0                       0                      0                      0                     0                  0
+identity_verification                              0                     0                          0                          0                     12                    0                   0              0                       0                      0                      0                     0                  0
+legal_news_research                                1                     0                          0                          0                      0                   10                   0              0                       0                      1                      0                     0                  0
+license_plate_data                                 2                     0                          0                          0                      0                    0                  10              0                       0                      0                      0                     0                  0
+lpr_equipment                                      0                     0                          0                          0                      0                    0                   0             11                       0                      1                      0                     0                  0
+osint_analysis_service                             0                     0                          0                          0                      0                    0                   0              0                       6                      3                      0                     0                  3
+other_it_or_unrelated                              0                     2                          0                          0                      0                    2                   0              0                       0                     36                      0                     0                  0
+people_search_records                              1                     0                          0                          0                      0                    0                   0              0                       0                      0                     11                     0                  0
+skip_tracing_service                               0                     0                          1                          0                      0                    0                   0              0                       0                      0                      0                    11                  0
+social_media_data                                  0                     0                          0                          0                      0                    0                   0              0                       0                      0                      0                     0                 12

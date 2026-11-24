@@ -1,0 +1,11 @@
+kind,code,description,keep,why
+psc,D317,IT and telecom - web-based subscription (formerly automated news/data services),1,top PSC for broker subscriptions
+psc,R612,Support - administrative: information retrieval,1,public-records retrieval services
+naics,519190,All other information services (2017 NAICS),1,broker/data services pre-2022
+naics,519290,Web search portals and all other information services (2022 NAICS),1,successor to 519190
+naics,561450,Credit bureaus,1,credit/consumer reporting agencies
+naics,561611,Investigation services,1,skip tracing / locating vendors
+naics,519130,Internet publishing and web search portals (2017 NAICS),0,dominated by legal research and news; left out to keep denominator about data services
+psc,DA10,IT and telecom - SaaS,0,generic software; too broad
+psc,7030,IT software,0,generic software; too broad
+naics,541519,Other computer related services,0,generic IT resellers; too broad

@@ -1,0 +1,185 @@
+item_id,hand_category,hand_personal_data,confidence,note
+1001,social_media_data,1,medium,"Babel Street order, no product detail; vendor sells PAI data"
+1002,social_media_data,1,high,
+1003,other_it_or_unrelated,0,high,
+1004,other_it_or_unrelated,0,high,
+1005,legal_news_research,0,high,
+1006,other_it_or_unrelated,0,medium,"Hardware for OSINT unit, not data"
+1007,credit_employment_reports,1,medium,Credit report from Verato
+1008,ambiguous_vendor_contract,0,low,"Vigilant, no description"
+1009,other_it_or_unrelated,0,high,
+1010,people_search_records,1,high,
+1011,other_it_or_unrelated,0,high,
+1012,skip_tracing_service,1,medium,TransUnion skip tracing described as service
+1013,credit_monitoring_service,0,high,
+1014,osint_analysis_service,0,medium,OSINT labor in mods of broader IT contract
+1015,corporate_trade_data,0,high,
+1016,corporate_trade_data,0,high,
+1017,people_search_records,1,high,
+1018,credit_employment_reports,1,medium,Skip tracing plus credit bureau reports for debt collection
+1019,other_it_or_unrelated,0,high,
+1020,lpr_equipment,0,high,
+1021,skip_tracing_service,1,high,
+1022,people_search_records,1,high,
+1023,legal_news_research,0,medium,Professional association journal subscription
+1024,social_media_data,1,medium,"Cobwebs software tool, vague description"
+1025,license_plate_data,1,high,
+1026,other_it_or_unrelated,0,high,
+1027,skip_tracing_service,1,medium,Data broker vendor; text says skip tracing services
+1028,ambiguous_vendor_contract,0,low,"Vigilant, equipment PSC, unclear if LPR data or hardware"
+1029,credit_monitoring_service,0,high,
+1030,legal_news_research,0,medium,TVEyes media monitoring subscription
+1031,people_search_records,1,high,
+1032,corporate_trade_data,0,medium,Accuity bank/sanctions data
+1033,other_it_or_unrelated,0,high,
+1034,identity_verification,1,high,
+1035,osint_analysis_service,0,high,
+1036,other_it_or_unrelated,0,high,
+1037,osint_analysis_service,0,medium,OSINT exploitation R&D project
+1038,lpr_equipment,0,high,
+1039,other_it_or_unrelated,0,medium,Generic investigative services for complaint
+1040,legal_news_research,0,high,
+1041,people_search_records,1,high,
+1042,other_it_or_unrelated,0,high,
+1043,credit_employment_reports,1,high,
+1044,osint_analysis_service,0,high,
+1045,lpr_equipment,0,high,
+1046,social_media_data,1,high,
+1047,other_it_or_unrelated,0,high,
+1048,credit_monitoring_service,0,medium,Credit monitoring; recipients not stated
+1049,other_it_or_unrelated,0,high,
+1050,credit_employment_reports,1,high,
+1051,credit_monitoring_service,0,high,
+1052,lpr_equipment,0,high,
+1053,other_it_or_unrelated,0,high,
+1054,legal_news_research,0,high,
+1055,other_it_or_unrelated,0,high,
+1056,legal_news_research,0,medium,Westlaw described as investigative and legal search
+1057,corporate_trade_data,0,high,
+1058,legal_news_research,0,high,
+1059,other_it_or_unrelated,0,high,
+1060,other_it_or_unrelated,0,high,
+1061,identity_verification,1,high,
+1062,other_it_or_unrelated,0,high,
+1063,credit_monitoring_service,0,medium,Large IRS subscription; unclear who is monitored
+1064,social_media_data,1,medium,"Social media monitoring tool, likely communications use"
+1065,skip_tracing_service,1,high,
+1066,ambiguous_vendor_contract,0,low,"Thomson Reuters data analytic support, product unclear"
+1067,skip_tracing_service,1,medium,Data broker vendor; text says skip tracing services
+1068,lpr_equipment,0,high,
+1069,other_it_or_unrelated,0,high,
+1070,legal_news_research,0,high,
+1071,credit_employment_reports,1,high,
+1072,license_plate_data,1,high,
+1073,credit_monitoring_service,0,high,
+1074,identity_verification,1,high,
+1075,skip_tracing_service,1,high,
+1076,credit_employment_reports,1,high,
+1077,skip_tracing_service,1,high,
+1078,other_it_or_unrelated,0,high,
+1079,legal_news_research,0,high,
+1080,people_search_records,1,high,
+1081,social_media_data,1,medium,"Babel Street order, no product detail"
+1082,credit_employment_reports,1,medium,"Consumer credit panel data, research use"
+1083,lpr_equipment,0,high,
+1084,license_plate_data,1,medium,"Vigilant database for fugitive ops, LPR implied"
+1085,other_it_or_unrelated,0,low,R&D of OSINT collection agents; could be OSINT service
+1086,other_it_or_unrelated,0,high,
+1087,credit_employment_reports,1,high,
+1088,legal_news_research,0,high,
+1089,credit_monitoring_service,0,high,
+1090,corporate_trade_data,0,medium,Steel industry data subscription
+1091,license_plate_data,1,high,
+1092,social_media_data,1,medium,Meltwater licenses for public affairs social media support
+1093,social_media_data,1,medium,"OSINT subscriptions, vendor product unspecified"
+1094,identity_verification,1,high,
+1095,lpr_equipment,0,high,
+1096,people_search_records,1,high,
+1097,credit_monitoring_service,0,high,
+1098,other_it_or_unrelated,0,high,
+1099,identity_verification,1,high,
+1100,other_it_or_unrelated,0,high,
+1101,identity_verification,1,high,
+1102,corporate_trade_data,0,high,
+1103,identity_verification,1,high,
+1104,corporate_trade_data,0,high,
+1105,corporate_trade_data,0,medium,D&B Investigate for intelligence office; business-focused
+1106,other_it_or_unrelated,0,high,
+1107,license_plate_data,1,low,"Vigilant web subscription, no description"
+1108,ambiguous_vendor_contract,0,medium,"LexisNexis IT services, product unstated"
+1109,social_media_data,1,high,
+1110,social_media_data,1,high,
+1111,other_it_or_unrelated,0,high,
+1112,corporate_trade_data,0,high,
+1113,corporate_trade_data,0,high,
+1114,credit_monitoring_service,0,high,
+1115,identity_verification,1,high,
+1116,skip_tracing_service,1,high,
+1117,other_it_or_unrelated,0,high,
+1118,corporate_trade_data,0,high,
+1119,corporate_trade_data,0,high,
+1120,identity_verification,1,high,
+1121,people_search_records,1,medium,"Appriss info retrieval, likely booking records"
+1122,legal_news_research,0,high,
+1123,credit_employment_reports,1,high,
+1124,license_plate_data,1,medium,LPR camera plus database access
+1125,other_it_or_unrelated,0,high,
+1126,license_plate_data,1,high,
+1127,osint_analysis_service,0,medium,"OSINT services, labor vs tool unclear"
+1128,identity_verification,1,high,
+1129,credit_employment_reports,1,high,
+1130,other_it_or_unrelated,0,high,
+1131,other_it_or_unrelated,0,medium,"Unemployment compensation management, not data purchase"
+1132,other_it_or_unrelated,0,high,
+1133,people_search_records,1,high,
+1134,skip_tracing_service,1,high,
+1135,other_it_or_unrelated,0,high,
+1136,social_media_data,1,high,
+1137,osint_analysis_service,0,medium,Logistics contract with OSINT research task lines
+1138,other_it_or_unrelated,0,high,
+1139,skip_tracing_service,1,high,
+1140,legal_news_research,0,high,
+1141,credit_employment_reports,1,high,
+1142,legal_news_research,0,medium,"LexisNexis subscription for executive secretariat, likely news"
+1143,social_media_data,1,medium,Meltwater news/social platform for public relations
+1144,legal_news_research,0,high,
+1145,social_media_data,1,high,
+1146,lpr_equipment,0,low,LPR study by environmental consultant; own LPR program likely
+1147,other_it_or_unrelated,0,high,
+1148,other_it_or_unrelated,0,high,
+1149,other_it_or_unrelated,0,high,
+1150,license_plate_data,1,high,
+1151,social_media_data,1,medium,Social media monitoring by foreign awardee; service or tool unclear
+1152,lpr_equipment,0,high,
+1153,other_it_or_unrelated,0,high,
+1154,legal_news_research,0,medium,"West subscription renewal, product unstated"
+1155,credit_monitoring_service,0,high,
+1156,people_search_records,1,high,
+1157,credit_employment_reports,1,high,
+1158,other_it_or_unrelated,0,high,
+1159,people_search_records,1,high,
+1160,identity_verification,1,high,
+1161,legal_news_research,0,high,
+1162,credit_monitoring_service,0,high,
+1163,corporate_trade_data,0,high,
+1164,legal_news_research,0,medium,"LexisNexis online access, product unstated"
+1165,identity_verification,1,high,
+1166,license_plate_data,1,high,
+1167,other_it_or_unrelated,0,high,
+1168,other_it_or_unrelated,0,high,
+1169,other_it_or_unrelated,0,low,"Law firm, no description; information retrieval PSC"
+1170,ambiguous_vendor_contract,0,medium,"Just ""Lexis Nexis"", product unknown"
+1171,skip_tracing_service,1,high,
+1172,other_it_or_unrelated,0,high,
+1173,credit_monitoring_service,0,medium,Large IRS credit monitoring; recipients not stated
+1174,other_it_or_unrelated,0,high,
+1175,lpr_equipment,0,high,
+1176,license_plate_data,1,low,"Vigilant web subscription, no description"
+1177,corporate_trade_data,0,high,
+1178,other_it_or_unrelated,0,high,
+1179,lpr_equipment,0,high,
+1180,other_it_or_unrelated,0,medium,Desktop hardware for OSINT analyst
+1181,people_search_records,1,high,
+1182,legal_news_research,0,high,
+1183,credit_employment_reports,1,medium,"Equifax Workforce online lookup, likely Work Number"
+1184,social_media_data,1,high,

@@ -1,0 +1,245 @@
+item_id,hand_category,hand_personal_data,confidence,note
+244,other_it_or_unrelated,0,high,
+245,ambiguous_vendor_contract,0,medium,LexisNexis online database; legal vs records unclear
+246,other_it_or_unrelated,0,high,
+247,biometric_face,1,high,
+248,credit_monitoring_service,0,high,
+249,skip_tracing_service,1,high,
+250,location_data,1,high,
+251,lpr_equipment,0,high,
+252,other_it_or_unrelated,0,high,
+253,social_media_data,1,high,
+254,social_media_data,1,low,"TRM Labs OSINT tools; likely blockchain analytics, unclear"
+255,other_it_or_unrelated,0,high,
+256,people_search_records,1,high,
+257,other_it_or_unrelated,0,high,
+258,license_plate_data,1,high,
+259,location_data,1,medium,Babel licenses; mod upgrades Locate X
+260,lpr_equipment,0,high,
+261,corporate_trade_data,0,medium,Sayari graph; corporate ownership data
+262,people_search_records,1,high,
+263,biometric_face,1,high,
+264,lpr_equipment,0,high,
+265,skip_tracing_service,1,high,
+266,social_media_data,1,high,
+267,credit_monitoring_service,0,high,
+268,lpr_equipment,0,high,
+269,credit_monitoring_service,0,high,
+270,biometric_face,1,high,
+271,credit_employment_reports,1,high,
+272,identity_verification,1,high,
+273,legal_news_research,0,high,
+274,credit_employment_reports,1,medium,Equifax Workforce small purchase; likely employment verification
+275,identity_verification,1,high,
+276,corporate_trade_data,0,medium,Sayari subscription; corporate data
+277,social_media_data,1,high,
+278,corporate_trade_data,0,medium,"Sayari subscription, no detail"
+279,ambiguous_vendor_contract,0,low,"West, no description"
+280,biometric_face,1,high,
+281,corporate_trade_data,0,high,
+282,people_search_records,1,medium,LexisNexis background checks
+283,legal_news_research,0,high,
+284,license_plate_data,1,high,
+285,credit_employment_reports,1,medium,"Equifax credit reporting PSC, no description"
+286,other_it_or_unrelated,0,high,
+287,biometric_face,1,high,
+288,social_media_data,1,high,
+289,other_it_or_unrelated,0,high,
+290,social_media_data,1,medium,Dataminr; description uninformative
+291,biometric_face,1,high,
+292,corporate_trade_data,0,medium,Accuity banking/sanctions data
+293,other_it_or_unrelated,0,high,
+294,biometric_face,1,high,
+295,biometric_face,1,high,
+296,ambiguous_vendor_contract,0,low,Packet Forensics commercial data license; content unclear
+297,osint_analysis_service,0,high,
+298,lpr_equipment,0,high,
+299,social_media_data,1,high,
+300,biometric_face,1,high,
+301,identity_verification,1,high,
+302,legal_news_research,0,high,
+303,people_search_records,1,high,
+304,lpr_equipment,0,high,
+305,legal_news_research,0,high,
+306,lpr_equipment,0,high,
+307,legal_news_research,0,high,
+308,credit_monitoring_service,0,high,
+309,legal_news_research,0,high,
+310,identity_verification,1,high,
+311,legal_news_research,0,high,
+312,credit_monitoring_service,0,high,
+313,lpr_equipment,0,medium,maintenance of agency-operated LPR unit
+314,credit_employment_reports,1,high,
+315,other_it_or_unrelated,0,high,
+316,skip_tracing_service,1,high,
+317,people_search_records,1,high,
+318,other_it_or_unrelated,0,medium,"OSINT training and secure browsing tool, not data"
+319,license_plate_data,1,medium,Vigilant optical reader service; likely LPR data access
+320,legal_news_research,0,high,
+321,other_it_or_unrelated,0,low,"Clearview R&D on facial recognition glasses, not database"
+322,skip_tracing_service,1,high,
+323,other_it_or_unrelated,0,medium,debt management contract; skip tracing incidental
+324,osint_analysis_service,0,medium,social media monitoring by consulting firm
+325,other_it_or_unrelated,0,high,
+326,identity_verification,1,high,
+327,corporate_trade_data,0,high,
+328,credit_employment_reports,1,high,
+329,lpr_equipment,0,medium,LPR pole construction at gate
+330,credit_employment_reports,1,low,Equifax Workforce charge dispute; likely employment verification
+331,other_it_or_unrelated,0,high,
+332,identity_verification,1,high,
+333,corporate_trade_data,0,high,
+334,biometric_face,1,high,
+335,identity_verification,1,high,
+336,social_media_data,1,medium,Maltego OSINT correlation software
+337,legal_news_research,0,high,
+338,legal_news_research,0,high,
+339,other_it_or_unrelated,0,high,
+340,identity_verification,1,high,
+341,other_it_or_unrelated,0,high,
+342,credit_employment_reports,1,high,
+343,legal_news_research,0,high,
+344,credit_employment_reports,1,medium,Equifax Workforce small purchase; likely employment verification
+345,other_it_or_unrelated,0,high,
+346,skip_tracing_service,1,medium,third-party data for skip tracing support
+347,license_plate_data,1,high,
+348,corporate_trade_data,0,low,"Sayari analytical tool, no detail"
+349,legal_news_research,0,medium,RELX annual publication order
+350,credit_monitoring_service,0,high,
+351,credit_monitoring_service,0,high,
+352,legal_news_research,0,medium,tax research e-learning courses
+353,credit_monitoring_service,0,high,
+354,other_it_or_unrelated,0,high,
+355,social_media_data,1,high,
+356,ambiguous_vendor_contract,0,medium,"LexisNexis services for 3 users, unspecified"
+357,location_data,1,high,
+358,corporate_trade_data,0,medium,Sayari intelligence database
+359,legal_news_research,0,medium,news monitoring service
+360,license_plate_data,1,high,
+361,biometric_face,1,high,
+362,lpr_equipment,0,high,
+363,credit_employment_reports,1,medium,education verification via clearinghouse
+364,other_it_or_unrelated,0,high,
+365,biometric_face,1,high,
+366,skip_tracing_service,1,high,
+367,legal_news_research,0,medium,West research subscription
+368,skip_tracing_service,1,high,
+369,social_media_data,1,high,
+370,corporate_trade_data,0,high,
+371,legal_news_research,0,high,
+372,corporate_trade_data,0,medium,Sayari research and data for journalism
+373,location_data,1,high,
+374,social_media_data,1,high,
+375,credit_monitoring_service,0,high,
+376,other_it_or_unrelated,0,high,
+377,legal_news_research,0,high,
+378,biometric_face,1,high,
+379,location_data,1,high,
+380,location_data,1,high,
+381,location_data,1,medium,"Venntel software license, unspecified"
+382,social_media_data,1,low,OSINT tools IDIQ; vendor product unknown
+383,other_it_or_unrelated,0,high,
+384,social_media_data,1,low,OSINT tools IDIQ; vendor product unknown
+385,identity_verification,1,high,
+386,credit_monitoring_service,0,medium,Experian; mod mentions credit monitoring
+387,skip_tracing_service,1,high,
+388,lpr_equipment,0,high,
+389,identity_verification,1,high,
+390,corporate_trade_data,0,medium,Sayari analytic subscription
+391,legal_news_research,0,high,
+392,lpr_equipment,0,medium,connectivity for agency LPR program
+393,social_media_data,1,high,
+394,corporate_trade_data,0,medium,Sayari graph global data
+395,lpr_equipment,0,high,
+396,credit_monitoring_service,0,high,
+397,other_it_or_unrelated,0,low,"TLO likely order acronym, not TLOxp"
+398,location_data,1,medium,BabelX plus LocateX; location data chosen
+399,lpr_equipment,0,medium,software support for CBP LPR system
+400,credit_monitoring_service,0,high,
+401,identity_verification,1,high,
+402,corporate_trade_data,0,low,"Sayari license access, unspecified"
+403,skip_tracing_service,1,medium,skip tracing services plus software licenses
+404,credit_monitoring_service,0,high,
+405,other_it_or_unrelated,0,high,
+406,legal_news_research,0,medium,Bloomberg energy market research subscription
+407,lpr_equipment,0,high,
+408,credit_employment_reports,1,high,
+409,legal_news_research,0,high,
+410,location_data,1,high,
+411,osint_analysis_service,0,medium,social media monitoring by local media vendor
+412,credit_employment_reports,1,high,
+413,credit_monitoring_service,0,high,
+414,other_it_or_unrelated,0,medium,AAMVA LPR working group; not equipment or data
+415,other_it_or_unrelated,0,high,
+416,lpr_equipment,0,high,
+417,other_it_or_unrelated,0,high,
+418,people_search_records,1,high,
+419,legal_news_research,0,high,
+420,corporate_trade_data,0,medium,Dun & Bradstreet third-party data; business data
+421,ambiguous_vendor_contract,0,low,"RELX software, unspecified"
+422,lpr_equipment,0,high,
+423,other_it_or_unrelated,0,high,
+424,credit_employment_reports,1,medium,"Equifax Workforce task order, unspecified; likely verification"
+425,social_media_data,1,low,OSINT tools IDIQ; vendor product unknown
+426,other_it_or_unrelated,0,medium,OSINT training course
+427,other_it_or_unrelated,0,medium,telecom relay service administration
+428,corporate_trade_data,0,medium,Sayari graph access
+429,biometric_face,1,high,
+430,lpr_equipment,0,high,
+431,people_search_records,1,high,
+432,other_it_or_unrelated,0,medium,debt management system; skip tracing incidental
+433,biometric_face,1,high,
+434,people_search_records,1,high,
+435,other_it_or_unrelated,0,high,
+436,social_media_data,1,high,
+437,biometric_face,1,high,
+438,credit_employment_reports,1,medium,Equifax Workforce small purchase; likely employment verification
+439,skip_tracing_service,1,high,
+440,credit_employment_reports,1,high,
+441,skip_tracing_service,1,high,
+442,legal_news_research,0,high,
+443,location_data,1,medium,Venntel data visualization portal
+444,legal_news_research,0,high,
+445,social_media_data,1,low,OSINT tools IDIQ; vendor product unknown
+446,other_it_or_unrelated,0,high,
+447,legal_news_research,0,medium,RELX 2015 guide publication
+448,social_media_data,1,medium,Maltego OSINT correlation software
+449,legal_news_research,0,medium,"West subscription, unspecified"
+450,social_media_data,1,low,OSINT tools IDIQ; vendor product unknown
+451,osint_analysis_service,0,high,
+452,legal_news_research,0,high,
+453,social_media_data,1,high,
+454,credit_monitoring_service,0,high,
+455,corporate_trade_data,0,medium,Sayari graph subscription
+456,other_it_or_unrelated,0,medium,financial investigation program support
+457,lpr_equipment,0,high,
+458,legal_news_research,0,medium,Lexis online research seats
+459,other_it_or_unrelated,0,medium,R&D fusion algorithms for PAI/CAI
+460,other_it_or_unrelated,0,low,"Clearview R&D open call, not database license"
+461,identity_verification,1,high,
+462,people_search_records,1,high,
+463,credit_monitoring_service,0,high,
+464,location_data,1,medium,Venntel bundled with crypto analytics tools
+465,other_it_or_unrelated,0,high,
+466,people_search_records,1,high,
+467,other_it_or_unrelated,0,high,
+468,other_it_or_unrelated,0,low,Penlink app maps target location; likely warrant data
+469,location_data,1,high,
+470,identity_verification,1,high,
+471,lpr_equipment,0,high,
+472,other_it_or_unrelated,0,high,
+473,ambiguous_vendor_contract,0,low,"database access, vendor and content unclear"
+474,commercial_data_generic,1,low,commercial data sets; content unspecified
+475,social_media_data,1,high,
+476,credit_employment_reports,1,high,
+477,credit_monitoring_service,0,high,
+478,people_search_records,1,medium,Experian locator/skip tracing data product
+479,osint_analysis_service,0,high,
+480,credit_monitoring_service,0,high,
+481,legal_news_research,0,high,
+482,other_it_or_unrelated,0,high,
+483,location_data,1,medium,Babel X plus Locate X data feed
+484,corporate_trade_data,0,medium,Sayari supply chain intelligence
+485,other_it_or_unrelated,0,high,
+486,lpr_equipment,0,high,
+487,biometric_face,1,high,

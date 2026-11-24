@@ -1,0 +1,244 @@
+item_id,hand_category,hand_personal_data,confidence,note
+1,credit_monitoring_service,0,high,
+2,credit_monitoring_service,0,high,
+3,other_it_or_unrelated,0,medium,"Consulting to modernize ID verification process, not data purchase"
+4,people_search_records,1,medium,Public records search database; vendor is Lexis affiliate
+5,legal_news_research,0,high,
+6,lpr_equipment,0,high,
+7,legal_news_research,0,high,
+8,identity_verification,1,high,
+9,biometric_face,1,high,
+10,social_media_data,1,medium,SocialNet OSINT tool software maintenance
+11,commercial_data_generic,1,medium,"Credit bureau ""data broker services"" unspecified"
+12,social_media_data,1,medium,OSINT tools IDIQ via reseller; tool type unspecified
+13,other_it_or_unrelated,0,high,
+14,identity_verification,1,high,
+15,social_media_data,1,medium,OSINT tools IDIQ via reseller; tool type unspecified
+16,license_plate_data,1,medium,LEARN is LPR data platform; PSC says training
+17,other_it_or_unrelated,0,medium,R&D fusing OSINT with drone detection data
+18,lpr_equipment,0,high,
+19,people_search_records,1,high,
+20,location_data,1,high,
+21,other_it_or_unrelated,0,high,
+22,biometric_face,1,high,
+23,other_it_or_unrelated,0,high,
+24,credit_employment_reports,1,high,
+25,identity_verification,1,high,
+26,identity_verification,1,high,
+27,credit_monitoring_service,0,high,
+28,skip_tracing_service,1,high,
+29,social_media_data,1,medium,OSINT tools IDIQ via reseller; tool type unspecified
+30,skip_tracing_service,1,high,
+31,osint_analysis_service,0,high,
+32,identity_verification,1,high,
+33,location_data,1,high,
+34,people_search_records,1,high,
+35,location_data,1,medium,Babel X and Locate X licenses; mixed social/location
+36,social_media_data,1,high,
+37,people_search_records,1,medium,SaaS access to batch skip tracing data
+38,lpr_equipment,0,high,
+39,legal_news_research,0,high,
+40,ambiguous_vendor_contract,0,medium,"LexisNexis data batch, content unspecified"
+41,credit_employment_reports,1,high,
+42,biometric_face,1,high,
+43,legal_news_research,0,high,
+44,credit_employment_reports,1,medium,Credit bureau consumer data for bank regulator
+45,social_media_data,1,high,
+46,other_it_or_unrelated,0,high,
+47,people_search_records,1,medium,Address lookups and death matches for delinquent recipients
+48,people_search_records,1,high,
+49,ambiguous_vendor_contract,0,medium,"West data subscription, content unspecified"
+50,legal_news_research,0,high,
+51,credit_monitoring_service,0,high,
+52,people_search_records,1,high,
+53,osint_analysis_service,0,medium,OSINT research R&D contract
+54,lpr_equipment,0,high,
+55,corporate_trade_data,0,medium,Thomson Reuters Markets likely financial market data
+56,lpr_equipment,0,high,
+57,other_it_or_unrelated,0,medium,LinkedIn recruiter for HR hiring
+58,social_media_data,1,medium,Babel Street open source digital forensics software
+59,location_data,1,high,
+60,credit_employment_reports,1,medium,"Equifax Workforce small purchase, likely employment verification"
+61,lpr_equipment,0,high,
+62,corporate_trade_data,0,medium,"D&B third party data, likely business data"
+63,license_plate_data,1,high,
+64,social_media_data,1,high,
+65,social_media_data,1,low,OSINT requirement as software; could be analyst support
+66,social_media_data,1,medium,Social media monitoring of emergency response
+67,lpr_equipment,0,high,
+68,credit_monitoring_service,0,high,
+69,corporate_trade_data,0,medium,"Sayari software licenses, corporate network data"
+70,credit_employment_reports,1,high,
+71,corporate_trade_data,0,high,
+72,skip_tracing_service,1,medium,Program support mod adds skip tracing services
+73,credit_employment_reports,1,medium,"Equifax Workforce online purchase, likely employment verification"
+74,social_media_data,1,high,
+75,other_it_or_unrelated,0,high,
+76,license_plate_data,1,high,
+77,skip_tracing_service,1,high,
+78,lpr_equipment,0,high,
+79,social_media_data,1,medium,"Babel Street, description uninformative"
+80,credit_monitoring_service,0,high,
+81,credit_monitoring_service,0,high,
+82,skip_tracing_service,1,high,
+83,people_search_records,1,medium,Skip tracing reports from data vendor
+84,other_it_or_unrelated,0,high,
+85,location_data,1,high,
+86,other_it_or_unrelated,0,high,
+87,license_plate_data,1,high,
+88,license_plate_data,1,high,
+89,legal_news_research,0,high,
+90,people_search_records,1,high,
+91,ambiguous_vendor_contract,0,low,"RELX database licenses, content unspecified"
+92,legal_news_research,0,high,
+93,social_media_data,1,high,
+94,credit_employment_reports,1,high,
+95,commercial_data_generic,1,high,
+96,ambiguous_vendor_contract,0,medium,"LexisNexis task order, content unspecified"
+97,lpr_equipment,0,medium,Staff support for agency LPR program
+98,commercial_data_generic,1,high,
+99,other_it_or_unrelated,0,high,
+100,corporate_trade_data,0,high,
+101,credit_employment_reports,1,medium,Equifax Workforce UCFE and employment verification services
+102,legal_news_research,0,high,
+103,other_it_or_unrelated,0,high,
+104,corporate_trade_data,0,medium,"Sayari software license, corporate network data"
+105,lpr_equipment,0,high,
+106,social_media_data,1,high,
+107,other_it_or_unrelated,0,low,County law enforcement database access; content unclear
+108,legal_news_research,0,high,
+109,lpr_equipment,0,medium,Certification of agency LPR equipment
+110,legal_news_research,0,high,
+111,osint_analysis_service,0,high,
+112,other_it_or_unrelated,0,medium,"Continuing legal education programming, training not research"
+113,biometric_face,1,high,
+114,location_data,1,high,
+115,lpr_equipment,0,high,
+116,biometric_face,1,high,
+117,people_search_records,1,high,
+118,skip_tracing_service,1,high,
+119,credit_monitoring_service,0,high,
+120,lpr_equipment,0,high,
+121,social_media_data,1,high,
+122,identity_verification,1,high,
+123,corporate_trade_data,0,medium,"Sayari graph analyst application, corporate data"
+124,biometric_face,1,high,
+125,lpr_equipment,0,medium,Wireless service supporting agency LPR program
+126,social_media_data,1,medium,OSINT tools IDIQ via reseller; tool type unspecified
+127,corporate_trade_data,0,medium,"Sayari licenses for investigations, corporate data"
+128,corporate_trade_data,0,high,
+129,other_it_or_unrelated,0,low,"Investigation services vendor, purpose unclear"
+130,corporate_trade_data,0,high,
+131,lpr_equipment,0,high,
+132,other_it_or_unrelated,0,medium,Hootsuite for agency's own social media posting
+133,skip_tracing_service,1,high,
+134,other_it_or_unrelated,0,high,
+135,legal_news_research,0,medium,Anti-corruption news subscription
+136,other_it_or_unrelated,0,high,
+137,credit_employment_reports,1,medium,Debt collection plus credit report services
+138,identity_verification,1,high,
+139,other_it_or_unrelated,0,high,
+140,other_it_or_unrelated,0,high,
+141,other_it_or_unrelated,0,medium,"OSINT training course, not analysis or data"
+142,legal_news_research,0,high,
+143,corporate_trade_data,0,medium,"Sayari licenses for counterproliferation, corporate data"
+144,credit_employment_reports,1,high,
+145,other_it_or_unrelated,0,medium,Experian QAS address validation software
+146,other_it_or_unrelated,0,medium,"Statistical datasets, not personal data"
+147,credit_employment_reports,1,high,
+148,lpr_equipment,0,high,
+149,biometric_face,1,high,
+150,other_it_or_unrelated,0,high,
+151,lpr_equipment,0,high,
+152,other_it_or_unrelated,0,high,
+153,lpr_equipment,0,high,
+154,corporate_trade_data,0,medium,Sayari graph subscription
+155,identity_verification,1,high,
+156,lpr_equipment,0,high,
+157,other_it_or_unrelated,0,high,
+158,other_it_or_unrelated,0,medium,"Aggregate vehicle mileage data, not individual-level"
+159,lpr_equipment,0,high,
+160,other_it_or_unrelated,0,high,
+161,location_data,1,high,
+162,other_it_or_unrelated,0,low,Workers comp claim data service from Equifax Workforce
+163,corporate_trade_data,0,medium,Sayari graph licenses
+164,skip_tracing_service,1,high,
+165,social_media_data,1,medium,OSINT tools IDIQ via reseller; tool type unspecified
+166,legal_news_research,0,high,
+167,corporate_trade_data,0,medium,Sayari search database
+168,other_it_or_unrelated,0,high,
+169,corporate_trade_data,0,medium,Sayari map and graph modules
+170,identity_verification,1,high,
+171,credit_monitoring_service,0,high,
+172,other_it_or_unrelated,0,medium,"Aggregate tobacco sales marketing data, not individual-level"
+173,other_it_or_unrelated,0,medium,"Cyber threat intelligence platform, not personal data"
+174,corporate_trade_data,0,high,
+175,location_data,1,high,
+176,identity_verification,1,high,
+177,corporate_trade_data,0,medium,Beneficial ownership data on companies
+178,credit_employment_reports,1,high,
+179,people_search_records,1,high,
+180,other_it_or_unrelated,0,high,
+181,commercial_data_generic,1,high,
+182,other_it_or_unrelated,0,low,"Unemployment compensation claims administration, not data purchase"
+183,legal_news_research,0,medium,"West subscription, likely legal publications"
+184,other_it_or_unrelated,0,high,
+185,legal_news_research,0,high,
+186,lpr_equipment,0,high,
+187,social_media_data,1,high,
+188,other_it_or_unrelated,0,high,
+189,credit_monitoring_service,0,high,
+190,social_media_data,1,high,
+191,identity_verification,1,high,
+192,other_it_or_unrelated,0,high,
+193,lpr_equipment,0,high,
+194,other_it_or_unrelated,0,medium,Babel Street Rosette translation software
+195,license_plate_data,1,high,
+196,people_search_records,1,high,
+197,skip_tracing_service,1,high,
+198,other_it_or_unrelated,0,high,
+199,corporate_trade_data,0,medium,"Sayari license, purpose unstated"
+200,social_media_data,1,medium,"OSINT subscription software, content unspecified"
+201,corporate_trade_data,0,medium,Fitch credit reports on firms/entities
+202,credit_employment_reports,1,high,
+203,identity_verification,1,high,
+204,lpr_equipment,0,high,
+205,identity_verification,1,high,
+206,legal_news_research,0,high,
+207,other_it_or_unrelated,0,high,
+208,other_it_or_unrelated,0,high,
+209,credit_employment_reports,1,medium,"Equifax Workforce online purchase, likely employment verification"
+210,credit_monitoring_service,0,high,
+211,credit_employment_reports,1,high,
+212,biometric_face,1,high,
+213,credit_employment_reports,1,medium,"Equifax Workforce online purchase, likely employment verification"
+214,legal_news_research,0,medium,Media tracking subscription
+215,ambiguous_vendor_contract,0,medium,"Equifax, no description beyond name"
+216,other_it_or_unrelated,0,medium,Training subscription
+217,skip_tracing_service,1,high,
+218,legal_news_research,0,medium,"West subscription renewal, likely legal research"
+219,other_it_or_unrelated,0,medium,"Government NPDB query, not private vendor"
+220,credit_employment_reports,1,medium,"Equifax Workforce online purchase, likely employment verification"
+221,identity_verification,1,high,
+222,other_it_or_unrelated,0,medium,Property title search for seizure
+223,osint_analysis_service,0,high,
+224,lpr_equipment,0,high,
+225,people_search_records,1,high,
+226,commercial_data_generic,1,medium,"NielsenIQ consumer data, possibly aggregate sales"
+227,other_it_or_unrelated,0,medium,OSINT training course
+228,license_plate_data,1,high,
+229,location_data,1,high,
+230,biometric_face,1,high,
+231,credit_monitoring_service,0,high,
+232,lpr_equipment,0,high,
+233,people_search_records,1,medium,SaaS access to batch skip tracing data
+234,identity_verification,1,high,
+235,identity_verification,1,high,
+236,other_it_or_unrelated,0,high,
+237,legal_news_research,0,high,
+238,identity_verification,1,high,
+239,identity_verification,1,medium,Synthetic identity detection services
+240,social_media_data,1,high,
+241,credit_monitoring_service,0,high,
+242,location_data,1,high,
+243,people_search_records,1,high,
