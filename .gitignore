@@ -6,11 +6,13 @@
 __pycache__/
 *.pyc
 ~$*
+*_files/
+*.knit.md
 
-# Raw data stays local (large, re-downloadable). GitHub rejects files over 100 MB.
-data/raw/*
-!data/raw/.gitkeep
-!data/raw/README.md
+# Files too large for GitHub (100 MB limit). Rebuild them with the scripts; see README.md.
+data/raw/usaspending/
+data/processed/usaspending/transactions.csv
+data/processed/usaspending/awards.csv
 
 # Local Claude instructions (not tracked)
 CLAUDE.md
